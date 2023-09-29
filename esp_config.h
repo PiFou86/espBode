@@ -1,14 +1,15 @@
 #ifndef _ESP_CONFIG_H_
 #define _ESP_CONFIG_H_
 
-#include "ESPTelnet.h"
-extern ESPTelnet telnet;
-
 #define FY6800 1
 #define FY6900 2
 #define JDS2800 3
 
-/* Select the FY6900, FY6800 or JDS2800 AWG*/
+/* Specify DEBUG output target by defining DEBUG_TO_SERIAL or DEBUG_TO_TELNET (or NONE) */
+//#define DEBUG_TO_SERIAL
+#define DEBUG_TO_TELNET
+
+/* Select the target AWG from: FY6900, FY6800 or JDS2800 */
 #define AWG FY6900
 
 /* Select either AP or CLIENT mode:
@@ -52,11 +53,21 @@ extern ESPTelnet telnet;
 
 #define RX_BUFF_SIZE        (128)
 
-//#define DEBUG_PRINTS
-#ifdef DEBUG_PRINTS
-  #define DEBUG(TEXT)         Serial.println(TEXT);
-#else
-  #define DEBUG(TEXT)         telnet.println(TEXT);
+// define DEBUG macro
+#ifndef DEBUG
+  #ifdef DEBUG_TO_SERIAL
+    #define DEBUG(TEXT)         Serial.println(TEXT);
+  #endif
+#endif
+#ifndef DEBUG
+  #ifdef DEBUG_TO_TELNET
+    #include "ESPTelnet.h"
+    extern ESPTelnet telnet;
+    #define DEBUG(TEXT)         telnet.println(TEXT);
+  #endif
+#endif
+#ifndef DEBUG
+  #define DEBUG(TEXT)
 #endif
 
 #endif /* _ESP_CONFIG_H_ */

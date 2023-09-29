@@ -1,8 +1,7 @@
-#if AWG == FY6900
-
 #ifndef _ESP_FY6900_H_
 #define _ESP_FY6900_H_
 
+#include <stdint.h> //uint8_t
 
 typedef enum
 {
@@ -92,5 +91,3 @@ bool setCh2Offset(int32_t offset);
 bool initDevice(void);
 
 #endif //_ESP_FY6900_H_
-
-#endif

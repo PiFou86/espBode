@@ -1,5 +1,9 @@
 #include "esp_parser.h"
 
+#include "esp_config.h" //definition if ID (simulated Siglent device ID)
+
+#include <ESP8266WiFi.h> //malloc, free, NULL, uint32_t, strncmp, ... //alternatively: #include <stddef.h>//#include <string.h>
+
 #if AWG == FY6800
   #include "esp_fy6800.h"
 #elif AWG == FY6900

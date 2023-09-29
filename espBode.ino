@@ -4,6 +4,7 @@
 
 #include "ESPTelnet.h"
 
+/*
 #if AWG == FY6800
   #include "esp_fy6800.h"
 #elif AWG == FY6900
@@ -13,6 +14,7 @@
 #else
   #error "Please select an AWG in esp_config.h"
 #endif
+*/
 
 WiFiServer rpc_server(RPC_PORT);
 WiFiServer lxi_server(LXI_PORT);

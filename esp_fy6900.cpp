@@ -1,5 +1,4 @@
 #include "esp_config.h"
-#include <string.h>
 
 #if AWG == FY6900
 #warning Compiling for FY6900
@@ -12,11 +11,9 @@ bool writeCommandToSerial(char* data, uint8_t len)
 {
     uint32_t timeout = 0;
 
-    // some debug output 
-    // todo: clarify where does this telnet output goes to? might this disturb the FY6900?)
-    telnet.println("[");
-    telnet.print(data);
-    telnet.println("]");
+    // debug output
+    String dataStr(data);
+    DEBUG("[\n" + dataStr + "]");
 
     // write command
     Serial.write((uint8_t*)data, len);
@@ -31,7 +28,7 @@ bool writeCommandToSerial(char* data, uint8_t len)
     ok = (Serial.read() == 0x0a); // 0x0a == \n
 
     if(!ok){
-      telnet.println("Invalid response for command");      
+        DEBUG("Invalid response for command");
     }
     return ok;
 }
@@ -80,6 +77,19 @@ RODATA : 1256  ) / 81920 - constants             (global, static) in RAM/HEAP
 BSS    : 25240 )         - zeroed variables      (global, static) in RAM/HEAP 
 Sketch uses 280732 bytes (29%) of program storage space. Maximum is 958448 bytes.
 Global variables use 27748 bytes (33%) of dynamic memory, leaving 54172 bytes for local variables. Maximum is 81920 bytes.
+
+Executable segment sizes:
+IROM   : 250900          - code in flash         (default or ICACHE_FLASH_ATTR) 
+IRAM   : 27324   / 32768 - code in IRAM          (ICACHE_RAM_ATTR, ISRs...) 
+DATA   : 1252  )         - initialized variables (global, static) in RAM/HEAP 
+RODATA : 1232  ) / 81920 - constants             (global, static) in RAM/HEAP 
+BSS    : 25248 )         - zeroed variables      (global, static) in RAM/HEAP 
+Sketch uses 280708 bytes (29%) of program storage space. Maximum is 958448 bytes.
+Global variables use 27732 bytes (33%) of dynamic memory, leaving 54188 bytes for local variables. Maximum is 81920 bytes.
+
+Using library ESP8266WiFi at version 1.0 in folder: C:\Users\Steffen\AppData\Local\Arduino15\packages\esp8266\hardware\esp8266\2.7.4\libraries\ESP8266WiFi 
+Using library ESP Telnet at version 2.0.0 in folder: C:\Users\Steffen\OneDrive\Documents\Arduino\libraries\ESP_Telnet 
+Using library ESP8266WebServer at version 1.0 in folder: C:\Users\Steffen\AppData\Local\Arduino15\packages\esp8266\hardware\esp8266\2.7.4\libraries\ESP8266WebServer
 */
 
 bool setCh1Wave(EWaveType wave)
