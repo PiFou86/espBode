@@ -8,13 +8,20 @@
 
 volatile SDeviceState gDeviceState;
 
-bool fy6900_write(char* data, uint8_t len)
+bool writeCommandToSerial(char* data, uint8_t len)
 {
     uint32_t timeout = 0;
-    Serial.write((uint8_t*)data, len);
+
+    // some debug output 
+    // todo: clarify where does this telnet output goes to? might this disturb the FY6900?)
     telnet.println("[");
     telnet.print(data);
     telnet.println("]");
+
+    // write command
+    Serial.write((uint8_t*)data, len);
+    
+    // wait for device acknowledge response
     while(!Serial.available())
     {
         delay(1);
@@ -29,133 +36,150 @@ bool fy6900_write(char* data, uint8_t len)
     return ok;
 }
 
-void setCh1Wave(EWaveType wave)
+bool sendCommand(const char* cmdPattern, uint32_t param1, uint32_t param2)
 {
-    char command[] = "WMW00\n";
-    snprintf(command, 7, "WMW%02u\n", wave);
+    size_t cmdLen = snprintf(NULL, 0, cmdPattern, param1, param2);
+    char* command = (char*) malloc(cmdLen+1); //reserve 1 additional byte for snpritf 0 termination character
+    snprintf(command, cmdLen+1, cmdPattern, param1, param2);
+    bool ok = writeCommandToSerial(command, cmdLen);
+    free(command);
+    return ok;
+}
+
+bool sendCommand(const char* cmdPattern, uint32_t param1)
+{
+    // this kind of cmdPatterns must not contain exactly 1 place holder!
+    // todo: add a check (search for exactly 1 '%')
+    return sendCommand(cmdPattern, param1, 0);
+}
+
+bool sendCommand(const char* cmdPattern)
+{
+    // this kind of cmdPatterns must not contain place holders!
+    // todo: add a check (search for unexpected '%')
+    return sendCommand(cmdPattern, 0, 0);
+}
+
+/* 
+>>> before the refactoring of send commands:
+Executable segment sizes:
+IROM   : 251124          - code in flash         (default or ICACHE_FLASH_ATTR) 
+IRAM   : 27324   / 32768 - code in IRAM          (ICACHE_RAM_ATTR, ISRs...) 
+DATA   : 1252  )         - initialized variables (global, static) in RAM/HEAP 
+RODATA : 1372  ) / 81920 - constants             (global, static) in RAM/HEAP 
+BSS    : 25248 )         - zeroed variables      (global, static) in RAM/HEAP 
+Sketch uses 281072 bytes (29%) of program storage space. Maximum is 958448 bytes.
+Global variables use 27872 bytes (34%) of dynamic memory, leaving 54048 bytes for local variables. Maximum is 81920 bytes.
+
+>>> after the refactoring of send commands:
+Executable segment sizes:
+IROM   : 250900          - code in flash         (default or ICACHE_FLASH_ATTR) 
+IRAM   : 27324   / 32768 - code in IRAM          (ICACHE_RAM_ATTR, ISRs...) 
+DATA   : 1252  )         - initialized variables (global, static) in RAM/HEAP 
+RODATA : 1256  ) / 81920 - constants             (global, static) in RAM/HEAP 
+BSS    : 25240 )         - zeroed variables      (global, static) in RAM/HEAP 
+Sketch uses 280732 bytes (29%) of program storage space. Maximum is 958448 bytes.
+Global variables use 27748 bytes (33%) of dynamic memory, leaving 54172 bytes for local variables. Maximum is 81920 bytes.
+*/
+
+bool setCh1Wave(EWaveType wave)
+{
     gDeviceState.ch1Wave = wave;
-    fy6900_write(command, 6);
+    return sendCommand("WMW%02u\n", wave);
 }
 
-void setCh2Wave(EWaveType wave)
+bool setCh2Wave(EWaveType wave)
 {
-    char command[] = "WFW00\n";
-    snprintf(command, 7, "WFW%02u\n", wave);
     gDeviceState.ch2Wave = wave;
-    fy6900_write(command, 6);
+    return sendCommand("WFW%02u\n", wave);
 }
 
-void setCh1Output(uint32_t output)
+bool setCh1Output(uint32_t output)
 {
-  gDeviceState.ch1Output = output;
-  fy6900_write((char*)(output ? "WMN1\n" : "WMN0\n"), 5);
+    gDeviceState.ch1Output = output;
+    return sendCommand(output ? "WMN1\n" : "WMN0\n");
 }
 
-void setCh2Output(uint32_t output)
+bool setCh2Output(uint32_t output)
 {
-  gDeviceState.ch2Output = output;
-  fy6900_write((char*)(output ? "WFN1\n" : "WFN0\n"), 5);
+    gDeviceState.ch2Output = output;
+    return sendCommand(output ? "WFN1\n" : "WFN0\n");
 }
 
 /* Set frequency in Hz */
-void setCh1Freq(uint32_t frequency)
+bool setCh1Freq(uint32_t frequency)
 {
-    char command[] = "WMF00000000000000\n";
-    snprintf(command, 19, "WMF%08lu000000\n", frequency);
     gDeviceState.ch1Freq = frequency;
-    fy6900_write(command, 18);
+    // todo: check if the FY6900-100Mhz version has a frquency digit more and if so if it is backward compatible with the 14 digit commands 
+    return sendCommand("WMF%08u000000\n", frequency);
 }
 
 /* Set frequency in Hz */
-void setCh2Freq(uint32_t frequency)
+bool setCh2Freq(uint32_t frequency)
 {
-    char command[] = "WFF00000000000000\n";
-    snprintf(command, 19, "WFF%08lu000000\n", frequency);
     gDeviceState.ch2Freq = frequency;
-    fy6900_write(command, 18);
+    // todo: check if the FY6900-100Mhz version has a frequency digit more and if so if it is backward compatible with the 14 digit commands 
+    return sendCommand("WFF%08u000000\n", frequency);
 }
 
 /* Ampl is in mV: 12.345V = 12345 */
-void setCh1Ampl(uint32_t ampl)
+bool setCh1Ampl(uint32_t ampl)
 {
-    char command[] = "WMA00.000\n";
-    snprintf(command, 11, "WMA%02u.%03u\n", ampl/1000, ampl%1000);
     gDeviceState.ch1Ampl = ampl;
-    fy6900_write(command, 10);
+    return sendCommand("WMA%02u.%03u\n", ampl/1000, ampl%1000);
 }
 
-void setCh2Ampl(uint32_t ampl)
+bool setCh2Ampl(uint32_t ampl)
 {
-    char command[] = "WFA00.000\n";
-    snprintf(command, 11, "WFA%02u.%03u\n", ampl/1000, ampl%1000);
     gDeviceState.ch2Ampl = ampl;
-    fy6900_write(command, 10);
+    return sendCommand("WFA%02u.%03u\n", ampl/1000, ampl%1000);
 }
 
 /* Phase is in 0.1deg: 12.5deg = 125 */
-void setCh1Phase(uint32_t phase)
+bool setCh1Phase(uint32_t phase)
 {
-    char command[] = "WMP000.000\n";
-    snprintf(command, 12, "WMP%03u.%03u\n", phase/1000, (phase%1000)/100);
     gDeviceState.ch1Phase = phase;
-    fy6900_write(command, 11);
+    return sendCommand("WMP%03u.%03u\n", phase/1000, (phase%1000)/100);
 }
 
-void setCh2Phase(uint32_t phase)
+bool setCh2Phase(uint32_t phase)
 {
-    char command[] = "WFP000.000\n";
-    snprintf(command, 12, "WFP%03u.%03u\n", phase/1000, (phase%1000)/100);
     gDeviceState.ch2Phase = phase;
-    fy6900_write(command, 11);
+    return sendCommand("WFP%03u.%03u\n", phase/1000, (phase%1000)/100);
 }
 
-void setCh1Offset(int32_t offset)
+bool setCh1Offset(int32_t offset)
 {
-    char command[] = "WMO00.00\n";
     gDeviceState.ch1Offset = offset;
-    if(offset>=0)
-    {
-        snprintf(command, 10, "WMO%02u.%02u\n", offset/1000, offset%1000);
-        fy6900_write(command, 9);
-    }
-    else
-    {
-        snprintf(command, 11, "WMO-%02u.%02u\n", -offset/1000, -offset%1000);
-        fy6900_write(command, 10);
-    }
+    return (offset>=0)
+      ? sendCommand("WMO%02u.%02u\n", offset/1000, offset%1000)
+      : sendCommand("WMO-%02u.%02u\n", -offset/1000, -offset%1000);
 }
 
-void setCh2Offset(int32_t offset)
+bool setCh2Offset(int32_t offset)
 {
-    char command[] = "WFO00.00\n";
     gDeviceState.ch2Offset = offset;
-    if(offset>=0)
-    {
-        snprintf(command, 10, "WFO%02u.%02u\n", offset/1000, offset%1000);
-        fy6900_write(command, 9);
-    }
-    else
-    {
-       snprintf(command, 11, "WFO-%02u.%02u\n", -offset/1000, -offset%1000);
-       fy6900_write(command, 10);
-   }
+    return (offset>=0)
+      ? sendCommand("WFO%02u.%02u\n", offset/1000, offset%1000)
+      : sendCommand("WFO-%02u.%02u\n", -offset/1000, -offset%1000);
 }
 
-void initDevice(void)
+bool initDevice(void)
 {
     Serial.write((uint8_t*)"\n", 1);
 
-    setCh1Output(0);
-    setCh1Wave(EWaveType_Sine);
-    setCh1Freq(1000);
-    setCh1Ampl(1000);
-    setCh1Offset(0);
+    return
+         setCh1Output(0)
+      && setCh1Wave(EWaveType_Sine)
+      && setCh1Freq(1000)
+      && setCh1Ampl(1000)
+      && setCh1Offset(0)
 
-    setCh2Output(0);
-    setCh2Wave(EWaveType_Sine);
-    setCh2Freq(1000);
-    setCh2Ampl(1000);
-    setCh2Offset(0);
+      && setCh2Output(0)
+      && setCh2Wave(EWaveType_Sine)
+      && setCh2Freq(1000)
+      && setCh2Ampl(1000)
+      && setCh2Offset(0);
 }
 
 #endif

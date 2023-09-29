@@ -9,7 +9,7 @@ extern ESPTelnet telnet;
 #define JDS2800 3
 
 /* Select the FY6900, FY6800 or JDS2800 AWG*/
-#define AWG JDS2800
+#define AWG FY6900
 
 /* Select either AP or CLIENT mode:
     - AP - creates new network that oscilloscope can connect to

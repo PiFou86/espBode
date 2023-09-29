@@ -189,17 +189,19 @@ uint8_t handleVxi11(uint8_t *packet, WiFiClient client)
         while(!client.availableForWrite());
         client.write((uint8_t*)&create_response, sizeof(rpcresp_createLink));
         return 0;
-
         break;
+
     case VXI_11_DESTROY_LINK:
         DEBUG("DESTROY_LINK");
         /* Received at the end of the communication. We reset and wait for PORTMAP */
         return 1;
         break;
+
     case VXI_11_DEV_READ:
         DEBUG("DEV_READ");
         /* Answer with rcpresp_devReadWrite packet for DEV_READ */
         sendReadResponse(header->xid, client);
+        return 0;
         break;
 
     case VXI_11_DEV_WRITE:
@@ -219,6 +221,9 @@ uint8_t handleVxi11(uint8_t *packet, WiFiClient client)
         return 0;
         break;
     }
+
+    // unonwn/unhandeled case -> error
+    return 1;
 }
 
 uint8_t handlePacket(WiFiClient client)
