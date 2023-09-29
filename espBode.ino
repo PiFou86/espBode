@@ -27,8 +27,8 @@ void setup() {
     pinMode(LED_BUILTIN, OUTPUT);
 
     // We start by connecting to a WiFi network
-    DEBUG("Connecting to ");
-    DEBUG(WIFI_SSID);
+    PRINT_TO_SERIAL("Connecting to ");
+    PRINT_TO_SERIAL(WIFI_SSID);
 
 #if defined(STATIC_IP)
     IPAddress ip(ESP_IP);
@@ -48,15 +48,17 @@ void setup() {
 
     while (WiFi.status() != WL_CONNECTED) {
         delay(500);
-        DEBUG(".");
+        PRINT_TO_SERIAL(".");
         digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
     }
 
-    DEBUG("WiFi connected");
-    DEBUG("IP address: ");
-    DEBUG(WiFi.localIP().toString());
+    PRINT_TO_SERIAL("WiFi connected");
+    PRINT_TO_SERIAL("IP address: ");
+    PRINT_TO_SERIAL(WiFi.localIP().toString());
 
     telnet.begin();
+
+    // now after the IP connection is established and telnet.begin() akk further debug outputs can go to the configured target (serial or telnet or nil)
 
     rpc_server.begin();
     lxi_server.begin();

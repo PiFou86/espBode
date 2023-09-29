@@ -24,7 +24,7 @@
 #define WIFI_PSK              "wlan_key"
 
 /* Comment this for DHCP. However you'll need to obtain IP somehow. */
-#define STATIC_IP
+//#define STATIC_IP
 
 /* Static ip configuration */
 #ifdef STATIC_IP
@@ -53,17 +53,23 @@
 
 #define RX_BUFF_SIZE        (128)
 
-// define DEBUG macro
+// define PRINT macros
+#ifndef PRINT_TO_SERIAL
+    #define PRINT_TO_SERIAL(TEXT)   Serial.println(TEXT);
+#endif
+#ifndef PRINT_TO_TELNET
+    #define PRINT_TO_TELNET(TEXT)   telnet.println(TEXT);
+#endif
+
+// define DEBUG output macro
 #ifndef DEBUG
   #ifdef DEBUG_TO_SERIAL
-    #define DEBUG(TEXT)         Serial.println(TEXT);
+    #define DEBUG(TEXT)         PRINT_TO_SERIAL(TEXT)
   #endif
-#endif
-#ifndef DEBUG
   #ifdef DEBUG_TO_TELNET
     #include "ESPTelnet.h"
     extern ESPTelnet telnet;
-    #define DEBUG(TEXT)         telnet.println(TEXT);
+    #define DEBUG(TEXT)         PRINT_TO_TELNET(TEXT)
   #endif
 #endif
 #ifndef DEBUG
