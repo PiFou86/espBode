@@ -16,20 +16,35 @@
 #endif
 */
 
-WiFiServer rpc_server(RPC_PORT);
-WiFiServer lxi_server(LXI_PORT);
+WiFiServer *rpc_server;
+WiFiServer *lxi_server;
 ESPTelnet telnet;
 
 void setup() {
 
-    Serial.begin(115200);
-
     pinMode(LED_BUILTIN, OUTPUT);
 
-    // We start by connecting to a WiFi network
-    PRINT_TO_SERIAL("Connecting to ");
-    PRINT_TO_SERIAL(WIFI_SSID);
+    Serial.begin(115200);
 
+    // workaround to get Serial.print() working (synching esp with console)
+    for (int i=0; i<5; i++) { Serial.println("-"); delay(250); }
+
+    // inform about ESP flash capacity
+    uint32_t realSize = ESP.getFlashChipRealSize();
+    uint32_t ideSize = ESP.getFlashChipSize();
+    FlashMode_t ideMode = ESP.getFlashChipMode();
+    Serial.printf("Flash real id:   %08X\n", ESP.getFlashChipId());
+    Serial.printf("Flash real size: %u bytes\n", realSize);
+    Serial.printf("Flash ide  size: %u bytes\n", ideSize);
+    Serial.printf("Flash ide speed: %u Hz\n", ESP.getFlashChipSpeed());
+    Serial.printf("Flash ide mode:  %s\n", (ideMode == FM_QIO ? "QIO" : ideMode == FM_QOUT ? "QOUT" : ideMode == FM_DIO  ? "DIO" : ideMode == FM_DOUT ? "DOUT" : "UNKNOWN"));
+    if (ideSize != realSize) {
+        Serial.println("Flash Chip configuration wrong!\n");
+    } else {
+        Serial.println("Flash Chip configuration ok.\n");
+    }
+
+    // configuring and connection to WiFi
 #if defined(STATIC_IP)
     IPAddress ip(ESP_IP);
     IPAddress mask(ESP_MASK);
@@ -46,46 +61,45 @@ void setup() {
     #error PLEASE SELECT WIFI_MODE_AP OR WIFI_MODE_CLIENT!
 #endif
 
+    // We start by connecting to a WiFi network
+    Serial.printf("Connecting to WiFi '%s'  ", WIFI_SSID);
     while (WiFi.status() != WL_CONNECTED) {
         delay(500);
-        PRINT_TO_SERIAL(".");
+        Serial.print(".");
         digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
     }
+    Serial.printf("\nWiFi connected (IP address %s)\n", WiFi.localIP().toString().c_str());
 
-    PRINT_TO_SERIAL("WiFi connected");
-    PRINT_TO_SERIAL("IP address: ");
-    PRINT_TO_SERIAL(WiFi.localIP().toString());
+    // network initialization
+    rpc_server = new WiFiServer(RPC_PORT);
+    lxi_server = new WiFiServer(LXI_PORT); 
 
     telnet.begin();
-
-    // now after the IP connection is established and telnet.begin() akk further debug outputs can go to the configured target (serial or telnet or nil)
-
-    rpc_server.begin();
-    lxi_server.begin();
+    rpc_server->begin();
+    lxi_server->begin();
 }
 
 void loop() {
+
     WiFiClient rpc_client;
-    WiFiClient lxi_client;
-
-    lxi_client.setTimeout(1000);
-
     do
     {
-        rpc_client = rpc_server.available();
+        rpc_client = rpc_server->accept();
     }
     while(!rpc_client);
-    DEBUG("RPC CONNECTION.");
-
+    DEBUG("RPC connection established");
     handlePacket(rpc_client);
     rpc_client.stop();
 
+    WiFiClient lxi_client;
+    //lxi_client.setTimeout(1000);
     do
     {
-        lxi_client = lxi_server.available();
+        lxi_client = lxi_server->accept();
     }
     while(!lxi_client);
-    DEBUG("LXI CONNECTION.");
+    lxi_client.setTimeout(1000);
+    DEBUG("LXI connection established");
 
     while(1)
     {
