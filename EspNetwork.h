@@ -1,5 +1,6 @@
-#ifndef _ESP_NETWORK_H_
-#define _ESP_NETWORK_H_
+#pragma once
+
+#include <stdint.h>
 
 typedef struct
 {
@@ -78,6 +79,37 @@ typedef struct
     uint32_t   maxReceiveSize;
 }rpcresp_createLink;
 
-uint8_t handlePacket(WiFiClient client);
 
-#endif /* _ESP_NETWORK_H_ */
+class WiFiClient;
+class AwgDevice; 
+class ConfigSiglent;
+
+class EspNetwork
+{
+private:
+    WiFiClient* _client;
+    AwgDevice* _awgDevice;
+    ConfigSiglent* _siglentConfig;
+    char* _readBuffer;
+
+public:
+    EspNetwork(WiFiClient* client, ConfigSiglent* siglentConfig, AwgDevice* awgDevice);
+
+    uint8_t handlePacket();
+
+private:
+    uint8_t getPadding(uint8_t unpadded);
+    void swapEndianess(uint8_t* data, uint8_t len);
+    void fillResponseHeader(uint8_t* hdr, uint32_t xid, uint32_t length);
+    uint32_t receiveRpcPacket(uint8_t** data);
+    void sendReadResponse(uint32_t xid);
+    
+    uint8_t handlePortmap(uint8_t* packet);
+    void parseVxiWrite(uint8_t* packet);
+    uint8_t handleVxi11(uint8_t* packet);
+
+    // from esp_parser.h
+    static int32_t parseDecimal(char *msg);
+    static uint32_t parseNumber(char *msg);
+    void handleWriteMsg(char *msg, uint8_t len);
+};

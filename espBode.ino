@@ -1,111 +1,157 @@
+/* WiFi credentials */
+#define WIFI_SSID   "wlan_ssid"
+#define WIFI_PSK    "wlan_key"
+
 #include <ESP8266WiFi.h>
-#include "esp_network.h"
 #include "esp_config.h"
-
+#include "EspNetwork.h"
 #include "ESPTelnet.h"
+#include "AwgDevice.h"
+// include the available concrete Awg device implementations
+#include "AwgFY6800.h"
+#include "AwgFY6900.h"
+#include "AwgJDS2800.h"
 
-/*
-#if AWG == FY6800
-  #include "esp_fy6800.h"
-#elif AWG == FY6900
-  #include "esp_fy6900.h"
-#elif AWG == JDS2800
-  #include "esp_jds2800.h"
-#else
-  #error "Please select an AWG in esp_config.h"
-#endif
-*/
-
-WiFiServer *rpc_server;
-WiFiServer *lxi_server;
+ConfigEspBode *g_espConfig;
+WiFiServer *g_rpc_server;
+WiFiServer *g_lxi_server;
+AwgDevice *g_awgDevice;
+HardwareSerial *g_serial;
 ESPTelnet telnet;
 
 void setup() {
 
     pinMode(LED_BUILTIN, OUTPUT);
 
-    Serial.begin(115200);
+    g_serial = &Serial;
+    g_serial->begin(115200);
 
-    // workaround to get Serial.print() working (synching esp with console)
-    for (int i=0; i<5; i++) { Serial.println("-"); delay(250); }
+    // workaround to get g_serial->print() working (synching esp with console)
+    for (int i=0; i<6; i++) { g_serial->println("-"); delay(250); }
 
+
+    g_serial->println("\n----- ESP info -----");
     // inform about ESP flash capacity
     uint32_t realSize = ESP.getFlashChipRealSize();
     uint32_t ideSize = ESP.getFlashChipSize();
     FlashMode_t ideMode = ESP.getFlashChipMode();
-    Serial.printf("Flash real id:   %08X\n", ESP.getFlashChipId());
-    Serial.printf("Flash real size: %u bytes\n", realSize);
-    Serial.printf("Flash ide  size: %u bytes\n", ideSize);
-    Serial.printf("Flash ide speed: %u Hz\n", ESP.getFlashChipSpeed());
-    Serial.printf("Flash ide mode:  %s\n", (ideMode == FM_QIO ? "QIO" : ideMode == FM_QOUT ? "QOUT" : ideMode == FM_DIO  ? "DIO" : ideMode == FM_DOUT ? "DOUT" : "UNKNOWN"));
+    g_serial->printf("Flash real id:   %08X\n", ESP.getFlashChipId());
+    g_serial->printf("Flash real size: %u bytes\n", realSize);
+    g_serial->printf("Flash ide  size: %u bytes\n", ideSize);
+    g_serial->printf("Flash ide speed: %u Hz\n", ESP.getFlashChipSpeed());
+    g_serial->printf("Flash ide mode:  %s\n", (ideMode == FM_QIO ? "QIO" : ideMode == FM_QOUT ? "QOUT" : ideMode == FM_DIO  ? "DIO" : ideMode == FM_DOUT ? "DOUT" : "UNKNOWN"));
     if (ideSize != realSize) {
-        Serial.println("Flash Chip configuration wrong!\n");
+      g_serial->println("Flash chip configuration wrong!");
     } else {
-        Serial.println("Flash Chip configuration ok.\n");
+      g_serial->println("Flash chip configuration ok.");
     }
 
-    // configuring and connection to WiFi
-#if defined(STATIC_IP)
-    IPAddress ip(ESP_IP);
-    IPAddress mask(ESP_MASK);
-    IPAddress gateway(ESP_GW);
-    WiFi.config(ip, gateway, mask);
-#endif
 
-#if defined(WIFI_MODE_CLIENT)
-    WiFi.mode(WIFI_STA);
-    WiFi.begin(WIFI_SSID, WIFI_PSK);
-#elif defined(WIFI_MODE_AP)
-    WiFi.softAP(WIFI_SSID, WIFI_PSK);
-#else
-    #error PLEASE SELECT WIFI_MODE_AP OR WIFI_MODE_CLIENT!
-#endif
+    g_serial->println("\n----- Loading config -----");
+    // todo: load espConfig from Filesystem and/or define interactively via seial interface...
+    g_espConfig = new ConfigEspBode();
+    /* Select the target AWG device */
+    g_espConfig->awgConfig.deviceType = ConfigAwgType::FY6900;
+    /* Select Wifi configuration
+        WIFI_MODE_AP      : creates new network that oscilloscope can connect to
+        WIFI_MODE_CLIENT  : joins existing network 
+        staticIp = false  : uses DHCP (make the router assigne always same IP) 
+        staticIp = true   : uses static IP definiton (specificaly for AP mode) */
+    g_espConfig->wifiConfig.wifiMode = ConfigWifiMode::WIFI_MODE_CLIENT;
+    g_espConfig->wifiConfig.staticIp = false;
+    g_espConfig->wifiConfig.staticIpAdr = "192.168.1.6";
+    g_espConfig->wifiConfig.staticIpMask = "255.255.255.0";
+    g_espConfig->wifiConfig.staticIpGateway = "192.168.1.1";
 
+
+    g_serial->println("\n----- Enter setup -----");
+
+
+    g_serial->println("\n----- Connecting WiFi -----");
+    // configuring and connecting to WiFi
+    if (g_espConfig->wifiConfig.staticIp) {
+        IPAddress ip, mask, gateway;
+        ip.fromString(g_espConfig->wifiConfig.staticIpAdr);
+        mask.fromString(g_espConfig->wifiConfig.staticIpMask);
+        gateway.fromString(g_espConfig->wifiConfig.staticIpGateway);
+        WiFi.config(ip, gateway, mask);
+    }
+    if (g_espConfig->wifiConfig.wifiMode == ConfigWifiMode::WIFI_MODE_CLIENT) {
+        WiFi.mode(WiFiMode_t::WIFI_STA);
+        WiFi.begin(WIFI_SSID, WIFI_PSK);
+    } else if (g_espConfig->wifiConfig.wifiMode == ConfigWifiMode::WIFI_MODE_AP) {
+        WiFi.softAP(WIFI_SSID, WIFI_PSK);
+    } else {
+      //#error PLEASE SELECT WIFI_MODE_AP OR WIFI_MODE_CLIENT!
+    }
     // We start by connecting to a WiFi network
-    Serial.printf("Connecting to WiFi '%s'  ", WIFI_SSID);
+    g_serial->printf("connecting to '%s'  ", WIFI_SSID);
     while (WiFi.status() != WL_CONNECTED) {
         delay(500);
-        Serial.print(".");
+        g_serial->print(".");
         digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
     }
-    Serial.printf("\nWiFi connected (IP address %s)\n", WiFi.localIP().toString().c_str());
+    g_serial->printf("\nWiFi connected (IP address %s)\n", WiFi.localIP().toString().c_str());
 
+
+    g_serial->println("\n----- Connecting to UART AWG device -----");
+    // create AwgDevice
+    if (g_espConfig->awgConfig.deviceType == ConfigAwgType::FY6800) {
+      g_awgDevice = new AwgFY6800(g_serial);
+    } else if (g_espConfig->awgConfig.deviceType == ConfigAwgType::FY6900) {
+      g_awgDevice = new AwgFY6900(g_serial);
+    } else if (g_espConfig->awgConfig.deviceType == ConfigAwgType::JDS2800) {
+      //g_awgDevice = new AwgDS2800(g_serial);
+    }
+    // init awg (should be done by Siglent emulator)
+    g_awgDevice->initDevice(g_awgDevice->getDeviceDefaults());
+
+
+    g_serial->println("\n----- Starting Siglent AWG LXI Network emulation -----");
     // network initialization
-    rpc_server = new WiFiServer(RPC_PORT);
-    lxi_server = new WiFiServer(LXI_PORT); 
+    g_rpc_server = new WiFiServer(g_espConfig->siglentConfig.rpcServerPort);
+    g_lxi_server = new WiFiServer(g_espConfig->siglentConfig.lxiServerPort); 
 
     telnet.begin();
-    rpc_server->begin();
-    lxi_server->begin();
+    g_rpc_server->begin();
+    g_lxi_server->begin();
 }
+
 
 void loop() {
 
     WiFiClient rpc_client;
     do
     {
-        rpc_client = rpc_server->accept();
+        rpc_client = g_rpc_server->accept();
     }
     while(!rpc_client);
     DEBUG("RPC connection established");
-    handlePacket(rpc_client);
+
+    EspNetwork *rpcHandler = new EspNetwork(&rpc_client, &(g_espConfig->siglentConfig), g_awgDevice);
+
+    rpcHandler->handlePacket();
+    delete(rpcHandler);
     rpc_client.stop();
 
     WiFiClient lxi_client;
     //lxi_client.setTimeout(1000);
     do
     {
-        lxi_client = lxi_server->accept();
+        lxi_client = g_lxi_server->accept();
     }
     while(!lxi_client);
     lxi_client.setTimeout(1000);
     DEBUG("LXI connection established");
 
+    EspNetwork *lxiHandler = new EspNetwork(&lxi_client, &(g_espConfig->siglentConfig), g_awgDevice);
+
     while(1)
     {
         telnet.loop();        
-        if(0 != handlePacket(lxi_client))
+        if(0 != lxiHandler->handlePacket())
         {
+            delete(lxiHandler);
             lxi_client.stop();
             DEBUG("RESTARTING");
             return;

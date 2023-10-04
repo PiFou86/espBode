@@ -1,3 +1,4 @@
+/*
 #include "esp_config.h"
 #include <string.h>
 
@@ -60,7 +61,6 @@ void setCh2Output(uint32_t output)
   jds2800_write((char*)(output ? ":w20=1,1.\r\n" : ":w20=1,0.\r\n"), 11);
 }
 
-/* Set frequency in Hz */
 void setCh1Freq(uint32_t frequency)
 {
     if(gDeviceState.ch1Freq != frequency)
@@ -72,7 +72,6 @@ void setCh1Freq(uint32_t frequency)
     }
     }
 
-/* Set frequency in Hz */
 void setCh2Freq(uint32_t frequency)
 {
         char command[] = ":w24=0000000000,0.\r\n";
@@ -81,7 +80,6 @@ void setCh2Freq(uint32_t frequency)
     jds2800_write(command, 20);
 }
 
-/* Ampl is in mV: 12.345V = 12345 */
 void setCh1Ampl(uint32_t ampl)
 {
     char command[] = ":w25=00000.\r\n";
@@ -98,7 +96,6 @@ void setCh2Ampl(uint32_t ampl)
     jds2800_write(command, 13);
 }
 
-/* Phase is in 0.1deg: 12.5deg = 125 */
 void setCh1Phase(uint32_t phase)
 {
     char command[] = "w:31=0000.\r\n";
@@ -152,3 +149,4 @@ void initDevice(void)
 }
 
 #endif
+*/
