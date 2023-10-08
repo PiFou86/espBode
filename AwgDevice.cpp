@@ -1,14 +1,14 @@
 #include "AwgDevice.h"
 #include <string.h>
 
-AwgDevice::AwgDevice(HardwareSerial* serial) {
-    _serial = serial;
-
+AwgDevice::AwgDevice(HardwareSerial* serial) 
+    : ScpiSerialDevice(serial)
+{
     // define defaults
     _defaults.ch1Output = 0;  //off (0=off 1=on)
     _defaults.ch2Output = 0;  //off
-    _defaults.ch1Wave = AwgWaveType::AwgWaveType_Sine;
-    _defaults.ch2Wave = AwgWaveType::AwgWaveType_Sine;
+    _defaults.ch1Wave = WaveType_Sine;
+    _defaults.ch2Wave = WaveType_Sine;
     _defaults.ch1Freq = 1000; //1000Hz (in Hz)
     _defaults.ch2Freq = 1000; //1000Hz
     _defaults.ch1Phase = 0;   //0deg (in 0.1deg => 125 = 12.5deg)
@@ -21,8 +21,8 @@ AwgDevice::AwgDevice(HardwareSerial* serial) {
     // init state with undefined values
     _state.ch1Output = 0;
     _state.ch2Output = 0;
-    _state.ch1Wave = AwgWaveType::AwgWaveType_UNDEFINED;
-    _state.ch2Wave = AwgWaveType::AwgWaveType_UNDEFINED;
+    _state.ch1Wave = WaveType_UNDEFINED;
+    _state.ch2Wave = WaveType_UNDEFINED;
     _state.ch1Freq = 0;
     _state.ch2Freq = 0;
     _state.ch1Phase = 0;
@@ -33,7 +33,7 @@ AwgDevice::AwgDevice(HardwareSerial* serial) {
     _state.ch2Offset = 0;
 }
 
-AwgDeviceState AwgDevice::getDeviceDefaults()
+AwgDevice::AwgDeviceState AwgDevice::getDeviceDefaults()
 {
     return _defaults;
 }
@@ -58,77 +58,7 @@ bool AwgDevice::initDevice(AwgDeviceState settings)
     return ok;
 }
 
-bool AwgDevice::writeCommandToSerial(char* data, uint8_t len)
-{
-    uint32_t timeout = 0;
-
-    _lastCommand = data;
-    _lastReply.clear();
-    //DEBUG("[\n" + _lastCommand + "]");
-
-    // sanity check (data should be 0 terminated string)
-    if (len != _lastCommand.length()) {
-        //DEBUG("invalid data or len");
-        return 0;
-    }
-
-    // write command
-    _serial->write((uint8_t*)data, len);
-
-    // wait for device acknowledge response
-    while (!_serial->available())
-    {
-        delay(1);
-        if (timeout++ > 1000) return false;
-    }
-    
-    bool ok = false;
-    ok = (_serial->read() == 0x0a); // 0x0a == \n
-
-    //if (!ok) {
-    //    DEBUG("invalid response for command");
-    //}
-    return ok;
-}
-
-const char* AwgDevice::lastDeviceCommand()
-{
-    return _lastCommand.c_str();
-}
-
-const char* AwgDevice::lastDeviceCommandReply()
-{
-    return _lastReply.c_str();
-}
-
-bool AwgDevice::sendDeviceCommand(const char* cmdPattern, uint32_t param1, uint32_t param2)
-{
-    // this kind of cmdPatterns can contain up to 2 place holders
-    // todo: add a check (ensure not more than 2 '%')
-    size_t cmdLen = snprintf(NULL, 0, cmdPattern, param1, param2);
-    char* command = (char*)malloc(cmdLen + 1); //reserve 1 additional byte for snpritf 0 termination character
-    snprintf(command, cmdLen + 1, cmdPattern, param1, param2);
-    bool ok = writeCommandToSerial(command, cmdLen);
-    free(command);
-    return ok;
-}
-
-bool AwgDevice::sendDeviceCommand(const char* cmdPattern, uint32_t param1)
-{
-    // this kind of cmdPatterns must contain exactly 1 place holder!
-    // todo: add a check (ensure exactly 1 '%')
-    return sendDeviceCommand(cmdPattern, param1, 0);
-}
-
-bool AwgDevice::sendDeviceCommand(const char* cmdPattern)
-{
-    // this kind of cmdPatterns must not contain any place holders!
-    // todo: add a check (ensure none '%')
-    return sendDeviceCommand(cmdPattern, 0, 0);
-}
-
-
-bool AwgDevice::setCh1WaveType(AwgWaveType waveType)
+bool AwgDevice::setCh1WaveType(WaveType waveType)
 {
     if (sendCh1WaveTypeCommand(waveType))
     {
@@ -138,7 +68,7 @@ bool AwgDevice::setCh1WaveType(AwgWaveType waveType)
     return false;
 }
 
-bool AwgDevice::setCh2WaveType(AwgWaveType waveType)
+bool AwgDevice::setCh2WaveType(WaveType waveType)
 {
     if (sendCh2WaveTypeCommand(waveType))
     {
@@ -250,8 +180,8 @@ bool AwgDevice::setCh2Offset(int32_t offset_mV)
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wuninitialized"
-bool AwgDevice::sendCh1WaveTypeCommand(AwgWaveType waveType) { waveType = waveType; return false; };
-bool AwgDevice::sendCh2WaveTypeCommand(AwgWaveType waveType) { waveType = waveType; return false; };
+bool AwgDevice::sendCh1WaveTypeCommand(WaveType waveType) { waveType = waveType; return false; };
+bool AwgDevice::sendCh2WaveTypeCommand(WaveType waveType) { waveType = waveType; return false; };
 bool AwgDevice::sendCh1OutputCommand(uint32_t output_OnOff) { output_OnOff = output_OnOff; return false; };
 bool AwgDevice::sendCh2OutputCommand(uint32_t output_OnOff) { output_OnOff = output_OnOff; return false; };
 bool AwgDevice::sendCh1FrequencyCommand(uint32_t frequency_Hz) { frequency_Hz = frequency_Hz; return false; };

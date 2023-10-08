@@ -370,8 +370,8 @@ void EspNetwork::handleWriteMsg(char *msg, uint8_t len)
                 msg+=5;
                 len-=5;
                 selectedChannel==1
-                  ? _awgDevice->setCh1WaveType(AwgWaveType_Sine)
-                  : _awgDevice->setCh2WaveType(AwgWaveType_Sine);
+                  ? _awgDevice->setCh1WaveType(AwgDevice::WaveType_Sine)
+                  : _awgDevice->setCh2WaveType(AwgDevice::WaveType_Sine);
             }
         }
 

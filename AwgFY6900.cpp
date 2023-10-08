@@ -1,103 +1,103 @@
 #include "AwgFy6900.h"
 
-FY6900WaveType AwgFY6900::MapWaveType(AwgWaveType waveType)
+AwgFY6900::FY6900WaveType AwgFY6900::MapWaveType(AwgDevice::WaveType waveType)
 {
     switch (waveType)
     {
-    case AwgWaveType::AwgWaveType_Sine:
-        return FY6900WaveType::FY6900WaveType_Sine;
-    case AwgWaveType::AwgWaveType_Square:
-        return FY6900WaveType::FY6900WaveType_Square;
-    case AwgWaveType::AwgWaveType_Pulse:
-        return FY6900WaveType::FY6900WaveType_Impulse; //??
-    case AwgWaveType::AwgWaveType_Triangle:
-        return FY6900WaveType::FY6900WaveType_Triangle;
-    case AwgWaveType::AwgWaveType_DC:
-        return FY6900WaveType::FY6900WaveType_DC;
-    case AwgWaveType::AwgWaveType_Noise:
-        return FY6900WaveType::FY6900WaveType_Noise;
-    case AwgWaveType::AwgWaveType_Lorentz:
-        return FY6900WaveType::FY6900WaveType_Lorentz;
-    case AwgWaveType::AwgWaveType_PosStair:
-        return FY6900WaveType::FY6900WaveType_PosStair;
-    case AwgWaveType::AwgWaveType_NegStair:
-        return FY6900WaveType::FY6900WaveType_NegStair;
-    case AwgWaveType::AwgWaveType_ExpFall:
-        return FY6900WaveType::FY6900WaveType_PosExp; //??
-    case AwgWaveType::AwgWaveType_Partialsine:
-        return FY6900WaveType::FY6900WaveType_PosHalfSin; //??
-    case AwgWaveType::AwgWaveType_CMOS:
-        return FY6900WaveType::FY6900WaveType_CMOS;
+    case AwgDevice::WaveType_Sine:
+        return FY6900WaveType_Sine;
+    case AwgDevice::WaveType_Square:
+        return FY6900WaveType_Square;
+    case AwgDevice::WaveType_Pulse:
+        return FY6900WaveType_Impulse; //??
+    case AwgDevice::WaveType_Triangle:
+        return FY6900WaveType_Triangle;
+    case AwgDevice::WaveType_DC:
+        return FY6900WaveType_DC;
+    case AwgDevice::WaveType_Noise:
+        return FY6900WaveType_Noise;
+    case AwgDevice::WaveType_Lorentz:
+        return FY6900WaveType_Lorentz;
+    case AwgDevice::WaveType_PosStair:
+        return FY6900WaveType_PosStair;
+    case AwgDevice::WaveType_NegStair:
+        return FY6900WaveType_NegStair;
+    case AwgDevice::WaveType_ExpFall:
+        return FY6900WaveType_PosExp; //??
+    case AwgDevice::WaveType_Partialsine:
+        return FY6900WaveType_PosHalfSin; //??
+    case AwgDevice::WaveType_CMOS:
+        return FY6900WaveType_CMOS;
     default:
       break;
     }
-    return FY6900WaveType::FY6900WaveType_UNDEFINED;
+    return FY6900WaveType_UNDEFINED;
 }
 
-bool AwgFY6900::sendCh1WaveTypeCommand(AwgWaveType waveType)
+bool AwgFY6900::sendCh1WaveTypeCommand(WaveType waveType)
 {
-    return sendDeviceCommand("WMW%02u\n", MapWaveType(waveType));
+    return sendScpiCommand("WMW%02u\n", MapWaveType(waveType));
 }
 
-bool AwgFY6900::sendCh2WaveTypeCommand(AwgWaveType waveType)
+bool AwgFY6900::sendCh2WaveTypeCommand(WaveType waveType)
 {
-    return sendDeviceCommand("WFW%02u\n", MapWaveType(waveType));
+    return sendScpiCommand("WFW%02u\n", MapWaveType(waveType));
 }
 
 bool AwgFY6900::sendCh1OutputCommand(uint32_t output_OnOff)
 {
-    return sendDeviceCommand(output_OnOff ? "WMN1\n" : "WMN0\n");
+    return sendScpiCommand(output_OnOff ? "WMN1\n" : "WMN0\n");
 }
 
 bool AwgFY6900::sendCh2OutputCommand(uint32_t output_OnOff)
 {
-    return sendDeviceCommand(output_OnOff ? "WFN1\n" : "WFN0\n");
+    return sendScpiCommand(output_OnOff ? "WFN1\n" : "WFN0\n");
 }
 
 bool AwgFY6900::sendCh1FrequencyCommand(uint32_t frequency_Hz)
 {
     // todo: check if the FY6900-100Mhz version has a frquency digit more and if so if it is backward compatible with the 14 digit commands 
-    return sendDeviceCommand("WMF%08u000000\n", frequency_Hz);
+    return sendScpiCommand("WMF%08u000000\n", frequency_Hz);
 }
 
 bool AwgFY6900::sendCh2FrequencyCommand(uint32_t frequency_Hz)
 {
     // todo: check if the FY6900-100Mhz version has a frequency digit more and if so if it is backward compatible with the 14 digit commands 
-    return sendDeviceCommand("WFF%08u000000\n", frequency_Hz);
+    return sendScpiCommand("WFF%08u000000\n", frequency_Hz);
 }
 
 bool AwgFY6900::sendCh1AmplitudeCommand(uint32_t ampl_mV)
 {
-    return sendDeviceCommand("WMA%02u.%03u\n", ampl_mV / 1000, ampl_mV % 1000);
+    return sendScpiCommand("WMA%02u.%03u\n", ampl_mV / 1000, ampl_mV % 1000);
 }
 
 bool AwgFY6900::sendCh2AmplitudeCommand(uint32_t ampl_mV)
 {
-    return sendDeviceCommand("WFA%02u.%03u\n", ampl_mV / 1000, ampl_mV % 1000);
+    return sendScpiCommand("WFA%02u.%03u\n", ampl_mV / 1000, ampl_mV % 1000);
 }
 
 bool AwgFY6900::sendCh1PhaseCommand(uint32_t phase_deziDegree)
 {
-    return sendDeviceCommand("WMP%03u.%03u\n", phase_deziDegree / 1000, (phase_deziDegree % 1000) / 100);
+    return sendScpiCommand("WMP%03u.%03u\n", phase_deziDegree / 1000, (phase_deziDegree % 1000) / 100);
 }
 
 bool AwgFY6900::sendCh2PhaseCommand(uint32_t phase_deziDegree)
 {
-    return sendDeviceCommand("WFP%03u.%03u\n", phase_deziDegree / 1000, (phase_deziDegree % 1000) / 100);
+    return sendScpiCommand("WFP%03u.%03u\n", phase_deziDegree / 1000, (phase_deziDegree % 1000) / 100);
 }
 
 bool AwgFY6900::sendCh1OffsetCommand(int32_t offset_mV)
 {
     return (offset_mV >= 0)
-        ? sendDeviceCommand("WMO%02u.%02u\n", offset_mV / 1000, offset_mV % 1000)
-        : sendDeviceCommand("WMO-%02u.%02u\n", -offset_mV / 1000, -offset_mV % 1000);
+        ? sendScpiCommand("WMO%02u.%02u\n", offset_mV / 1000, offset_mV % 1000)
+        : sendScpiCommand("WMO-%02u.%02u\n", -offset_mV / 1000, -offset_mV % 1000);
 }
 
 bool AwgFY6900::sendCh2OffsetCommand(int32_t offset_mV)
 {
     return (offset_mV >= 0)
-        ? sendDeviceCommand("WFO%02u.%02u\n", offset_mV / 1000, offset_mV % 1000)
-        : sendDeviceCommand("WFO-%02u.%02u\n", -offset_mV / 1000, -offset_mV % 1000);
+        ? sendScpiCommand("WFO%02u.%02u\n", offset_mV / 1000, offset_mV % 1000)
+        : sendScpiCommand("WFO-%02u.%02u\n", -offset_mV / 1000, -offset_mV % 1000);
 }
 
 /* 
