@@ -1,6 +1,6 @@
 #pragma once
 
-#include "IScpiDevice.h"
+#include "Interfaces/IScpiDevice.h"
 #include <HardwareSerial.h>
 #include <string> //std::string
 #include <stdint.h> //uint8_t

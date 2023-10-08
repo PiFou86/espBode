@@ -81,19 +81,19 @@ typedef struct
 
 
 class WiFiClient;
-class AwgDevice; 
-class ConfigSiglent;
+class IAwgDevice; 
+class ILxiDeviceConfig;
 
 class EspNetwork
 {
 private:
     WiFiClient* _client;
-    AwgDevice* _awgDevice;
-    ConfigSiglent* _siglentConfig;
+    ILxiDeviceConfig* _lxiConfig;
+    IAwgDevice* _awgDevice;
     char* _readBuffer;
 
 public:
-    EspNetwork(WiFiClient* client, ConfigSiglent* siglentConfig, AwgDevice* awgDevice);
+    EspNetwork(WiFiClient* client, ILxiDeviceConfig* lxiConfig, IAwgDevice* awgDevice);
 
     uint8_t handlePacket();
 

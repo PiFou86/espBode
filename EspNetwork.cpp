@@ -1,31 +1,41 @@
-#include "esp_config.h"
-/* Siglent-AWG Network config 
-#define ID                  "IDN-SGLT-PRI SDG1062X\n"
-#define RPC_PORT            (111)
-#define LXI_PORT            (703)
-#define PORTMAP             (0x000186A0)
-#define VXI_11_CORE         (0x000607AF)
-#define PORTMAP_GETPORT     (0x00000003)
-#define RPC_SINGLE_FRAG     (0x80000000)
-#define RPC_REPLY           (0x00000001)
-#define VXI_11_CREATE_LINK  (10)
-#define VXI_11_DESTROY_LINK (23)
-#define VXI_11_DEV_WRITE    (11)
-#define VXI_11_DEV_READ     (12)
-#define RX_BUFF_SIZE        (128)
-*/
+/* Specify DEBUG output target by defining DEBUG_TO_SERIAL or DEBUG_TO_TELNET (or NONE) */
+//#define DEBUG_TO_SERIAL
+#define DEBUG_TO_TELNET
+// define PRINT macros
+#ifndef PRINT_TO_SERIAL
+    #define PRINT_TO_SERIAL(TEXT)   Serial.println(TEXT);
+#endif
+#ifndef PRINT_TO_TELNET
+    #define PRINT_TO_TELNET(TEXT)   telnet.println(TEXT);
+#endif
+// define DEBUG output macro
+#ifndef DEBUG
+  #ifdef DEBUG_TO_SERIAL
+    #define DEBUG(TEXT)         Serial.println(TEXT);
+  #endif
+  #ifdef DEBUG_TO_TELNET
+    #include "ESPTelnet.h"
+    extern ESPTelnet telnet;
+    #define DEBUG(TEXT)         telnet.println(TEXT);
+  #endif
+#endif
+#ifndef DEBUG
+  #define DEBUG(TEXT)
+#endif
+
 
 #include "EspNetwork.h"
 #include <ESP8266WiFi.h>
-#include "AwgDevice.h"
+#include "Interfaces/IAwgDevice.h"
+#include "Interfaces/ILxiDevice.h"
 
 EspNetwork::EspNetwork(
     WiFiClient* client,
-    ConfigSiglent* siglentConfig,
-    AwgDevice* awgDevice)
+    ILxiDeviceConfig* lxiConfig,
+    IAwgDevice* awgDevice)
 {
     _client = client;
-    _siglentConfig = siglentConfig;
+    _lxiConfig = lxiConfig;
     _awgDevice = awgDevice;
 }
 
@@ -89,9 +99,9 @@ void EspNetwork::fillResponseHeader(uint8_t *hdr, uint32_t xid, uint32_t length)
         Currently we just pass void* then cast it to a more useful type. */
     rpcresp_header *header = (rpcresp_header*)hdr;
 
-    header->frag = _siglentConfig->RPC_SINGLE_FRAG | (length - 4);
+    header->frag = _lxiConfig->RPC_SINGLE_FRAG | (length - 4);
     header->xid = xid;
-    header->msg_type = _siglentConfig->RPC_REPLY;
+    header->msg_type = _lxiConfig->RPC_REPLY;
     header->reply_state = 0x00;
     header->verifier_l = 0x00;
     header->verifier_h = 0x00;
@@ -117,8 +127,8 @@ uint32_t EspNetwork::receiveRpcPacket(uint8_t **data)
     swapEndianess((uint8_t*)&header, sizeof(rpcreq_header));
 
     /* We only handle single-fragment VXI_11 packets */
-    if((header.frag & _siglentConfig->RPC_SINGLE_FRAG) &&
-       ((header.program == _siglentConfig->RPC_PROGRAM_PORTMAP) || header.program == _siglentConfig->RPC_PROGRAM_VXI11))
+    if((header.frag & _lxiConfig->RPC_SINGLE_FRAG) &&
+       ((header.program == _lxiConfig->RPC_PROGRAM_PORTMAP) || header.program == _lxiConfig->RPC_PROGRAM_VXI11))
     {
         /* Length of the whole packet is stored in the RPC header */
         length = (header.frag & 0x7FFFFFFF) + 4;
@@ -145,7 +155,7 @@ uint32_t EspNetwork::receiveRpcPacket(uint8_t **data)
 
 void EspNetwork::sendReadResponse(uint32_t xid)
 {
-    uint8_t length = sizeof(rcpresp_devReadWrite) + strlen(_siglentConfig->ID) + getPadding(strlen(_siglentConfig->ID));
+    uint8_t length = sizeof(rcpresp_devReadWrite) + strlen(_lxiConfig->deviceID) + getPadding(strlen(_lxiConfig->deviceID));
     rcpresp_devReadWrite *response = (rcpresp_devReadWrite*)malloc(length);
     memset(response, 0, length);
 
@@ -170,7 +180,7 @@ uint8_t EspNetwork::handlePortmap(uint8_t *packet)
 {
     rpcreq_getport *getport = (rpcreq_getport*)packet;
 
-    if(getport->header.procedure != _siglentConfig->PORTMAP_PROCEDURE_GETPORT)
+    if(getport->header.procedure != _lxiConfig->PORTMAP_PROCEDURE_GETPORT)
     {
         DEBUG("ERROR: UNKNOWN RPC PACKET");
     }
@@ -178,7 +188,7 @@ uint8_t EspNetwork::handlePortmap(uint8_t *packet)
     {
         rpcresp_getport response;
         fillResponseHeader((uint8_t*)&(response.header), getport->header.xid, sizeof(rpcresp_getport));
-        response.vxi_port = _siglentConfig->lxiServerPort;
+        response.vxi_port = _lxiConfig->lxiServerPort;
         swapEndianess((uint8_t*)&response, sizeof(rpcresp_getport));
         while(!_client->availableForWrite());
         _client->write((uint8_t*)&response, sizeof(rpcresp_getport));
@@ -198,7 +208,7 @@ uint8_t EspNetwork::handleVxi11(uint8_t *packet)
 {
     rpcreq_header *header = (rpcreq_header*)packet;
     
-    if (header->procedure == _siglentConfig->VXI11_PROCEDURE_CREATE_LINK)
+    if (header->procedure == _lxiConfig->VXI11_PROCEDURE_CREATE_LINK)
     {
         DEBUG("CREATE_LINK");
         /* We confirm that the device is ready */
@@ -216,14 +226,14 @@ uint8_t EspNetwork::handleVxi11(uint8_t *packet)
         return 0;
     }
 
-    if (header->procedure == _siglentConfig->VXI11_PROCEDURE_DESTROY_LINK)
+    if (header->procedure == _lxiConfig->VXI11_PROCEDURE_DESTROY_LINK)
     {
         DEBUG("DESTROY_LINK");
         /* Received at the end of the communication. We reset and wait for PORTMAP */
         return 1;
     }
 
-    if (header->procedure == _siglentConfig->VXI11_PROCEDURE_DEV_READ)
+    if (header->procedure == _lxiConfig->VXI11_PROCEDURE_DEV_READ)
     {
         DEBUG("DEV_READ");
         /* Answer with rcpresp_devReadWrite packet for DEV_READ */
@@ -231,7 +241,7 @@ uint8_t EspNetwork::handleVxi11(uint8_t *packet)
         return 0;
     }
 
-    if (header->procedure == _siglentConfig->VXI11_PROCEDURE_DEV_WRITE)
+    if (header->procedure == _lxiConfig->VXI11_PROCEDURE_DEV_WRITE)
     {
         DEBUG("DEV_WRITE ");
         parseVxiWrite((uint8_t*)header);
@@ -265,11 +275,11 @@ uint8_t EspNetwork::handlePacket()
         return 1;
     }
 
-    if (header->program == _siglentConfig->RPC_PROGRAM_PORTMAP) 
+    if (header->program == _lxiConfig->RPC_PROGRAM_PORTMAP) 
     {
         retVal = handlePortmap((uint8_t*)header);
     } 
-    else if (header->program == _siglentConfig->RPC_PROGRAM_VXI11)
+    else if (header->program == _lxiConfig->RPC_PROGRAM_VXI11)
     {
         retVal = handleVxi11((uint8_t*)header);
     }
@@ -341,8 +351,8 @@ void EspNetwork::handleWriteMsg(char *msg, uint8_t len)
         if(0 == strncmp(msg, "IDN-SGLT-PRI?", 13))
         {
             if(_readBuffer != NULL) free((void*)_readBuffer); /* Prevent memory leaks */
-            _readBuffer = (char*)malloc(strlen(_siglentConfig->ID)+1);
-            strcpy((char*)_readBuffer, _siglentConfig->ID);
+            _readBuffer = (char*)malloc(strlen(_lxiConfig->deviceID)+1);
+            strcpy((char*)_readBuffer, _lxiConfig->deviceID);
             break;
         }
 
@@ -370,8 +380,8 @@ void EspNetwork::handleWriteMsg(char *msg, uint8_t len)
                 msg+=5;
                 len-=5;
                 selectedChannel==1
-                  ? _awgDevice->setCh1WaveType(AwgDevice::WaveType_Sine)
-                  : _awgDevice->setCh2WaveType(AwgDevice::WaveType_Sine);
+                  ? _awgDevice->setCh1WaveType(IAwgDevice::WaveType_Sine)
+                  : _awgDevice->setCh2WaveType(IAwgDevice::WaveType_Sine);
             }
         }
 

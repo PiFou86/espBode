@@ -1,14 +1,13 @@
 #pragma once
 
-#include "IAwgDevice.h"
+#include "Interfaces/IAwgDevice.h"
 #include "ScpiSerialDevice.h"
 #include <stdint.h> //uint8_t, uint32_t
 
-
-class AwgDevice : public IAwgDevice, public ScpiSerialDevice //public IScpiDevice, protected ScpiSerialDevice
+class AwgSerialDeviceBase : public IAwgDevice, public ScpiSerialDevice
 {
 public:
-    AwgDevice(HardwareSerial* serial);
+    AwgSerialDeviceBase(HardwareSerial* serial);
 
     virtual AwgDeviceState getDeviceState();
     virtual AwgDeviceState getDeviceDefaults();
@@ -33,18 +32,18 @@ public:
     virtual bool setCh2Offset(int32_t offset_mV);
 
 protected:
-    virtual bool sendCh1WaveTypeCommand(WaveType waveType);
-    virtual bool sendCh2WaveTypeCommand(WaveType waveType);
-    virtual bool sendCh1OutputCommand(uint32_t output_OnOff);
-    virtual bool sendCh2OutputCommand(uint32_t output_OnOff);
-    virtual bool sendCh1FrequencyCommand(uint32_t frequency_Hz);
-    virtual bool sendCh2FrequencyCommand(uint32_t frequency_Hz);
-    virtual bool sendCh1AmplitudeCommand(uint32_t ampl_mV);
-    virtual bool sendCh2AmplitudeCommand(uint32_t ampl_mV);
-    virtual bool sendCh1PhaseCommand(uint32_t phase_deziDegree);
-    virtual bool sendCh2PhaseCommand(uint32_t phase_deziDegree);
-    virtual bool sendCh1OffsetCommand(int32_t offset_mV);
-    virtual bool sendCh2OffsetCommand(int32_t offset_mV);
+    virtual bool sendCh1WaveTypeCommand(WaveType waveType) = 0;
+    virtual bool sendCh2WaveTypeCommand(WaveType waveType) = 0;
+    virtual bool sendCh1OutputCommand(uint32_t output_OnOff) = 0;
+    virtual bool sendCh2OutputCommand(uint32_t output_OnOff) = 0;
+    virtual bool sendCh1FrequencyCommand(uint32_t frequency_Hz) = 0;
+    virtual bool sendCh2FrequencyCommand(uint32_t frequency_Hz) = 0;
+    virtual bool sendCh1AmplitudeCommand(uint32_t ampl_mV) = 0;
+    virtual bool sendCh2AmplitudeCommand(uint32_t ampl_mV) = 0;
+    virtual bool sendCh1PhaseCommand(uint32_t phase_deziDegree) = 0;
+    virtual bool sendCh2PhaseCommand(uint32_t phase_deziDegree) = 0;
+    virtual bool sendCh1OffsetCommand(int32_t offset_mV) = 0;
+    virtual bool sendCh2OffsetCommand(int32_t offset_mV) = 0;
 
 protected:
     AwgDeviceState _defaults;

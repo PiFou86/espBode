@@ -3,10 +3,12 @@
 #define WIFI_PSK    "wlan_key"
 
 #include <ESP8266WiFi.h>
+#include "ESPTelnet.h"
+
 #include "esp_config.h"
 #include "EspNetwork.h"
-#include "ESPTelnet.h"
-#include "AwgDevice.h"
+#include "Interfaces/IAwgDevice.h"
+
 // include the available concrete Awg device implementations
 #include "AwgFY6800.h"
 #include "AwgFY6900.h"
@@ -15,7 +17,7 @@
 ConfigEspBode *g_espConfig;
 WiFiServer *g_rpc_server;
 WiFiServer *g_lxi_server;
-AwgDevice *g_awgDevice;
+IAwgDevice *g_awgDevice;
 HardwareSerial *g_serial;
 ESPTelnet telnet;
 

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "AwgDevice.h"
+#include "AwgSerialDeviceBase.h"
 
-class AwgFY6900 : public AwgDevice
+class AwgFY6900 : public AwgSerialDeviceBase
 {
 public:
     enum FY6900WaveType
@@ -50,7 +50,7 @@ public:
     };
 
 public: 
-    AwgFY6900(HardwareSerial *serial) : AwgDevice(serial) {}
+    AwgFY6900(HardwareSerial *serial) : AwgSerialDeviceBase(serial) {}
     
 protected:
     /* WaveType is in AwgDevice::WaveType (needs to be mapped of actual device wave type IDs) */

@@ -1,7 +1,7 @@
-#include "AwgDevice.h"
+#include "AwgSerialDeviceBase.h"
 #include <string.h>
 
-AwgDevice::AwgDevice(HardwareSerial* serial) 
+AwgSerialDeviceBase::AwgSerialDeviceBase(HardwareSerial* serial)
     : ScpiSerialDevice(serial)
 {
     // define defaults
@@ -33,17 +33,17 @@ AwgDevice::AwgDevice(HardwareSerial* serial)
     _state.ch2Offset = 0;
 }
 
-AwgDevice::AwgDeviceState AwgDevice::getDeviceState()
+AwgSerialDeviceBase::AwgDeviceState AwgSerialDeviceBase::getDeviceState()
 {
     return _state;
 }
 
-AwgDevice::AwgDeviceState AwgDevice::getDeviceDefaults()
+AwgSerialDeviceBase::AwgDeviceState AwgSerialDeviceBase::getDeviceDefaults()
 {
     return _defaults;
 }
 
-bool AwgDevice::initDevice(AwgDeviceState settings)
+bool AwgSerialDeviceBase::initDevice(AwgDeviceState settings)
 {
     bool ok = true;
     ok &= setCh1Output(0);
@@ -63,7 +63,7 @@ bool AwgDevice::initDevice(AwgDeviceState settings)
     return ok;
 }
 
-bool AwgDevice::setCh1WaveType(WaveType waveType)
+bool AwgSerialDeviceBase::setCh1WaveType(WaveType waveType)
 {
     if (sendCh1WaveTypeCommand(waveType))
     {
@@ -73,7 +73,7 @@ bool AwgDevice::setCh1WaveType(WaveType waveType)
     return false;
 }
 
-bool AwgDevice::setCh2WaveType(WaveType waveType)
+bool AwgSerialDeviceBase::setCh2WaveType(WaveType waveType)
 {
     if (sendCh2WaveTypeCommand(waveType))
     {
@@ -83,7 +83,7 @@ bool AwgDevice::setCh2WaveType(WaveType waveType)
     return false;
 }
 
-bool AwgDevice::setCh1Output(uint32_t output_OnOff)
+bool AwgSerialDeviceBase::setCh1Output(uint32_t output_OnOff)
 {
     if (sendCh1OutputCommand(output_OnOff))
     {
@@ -93,7 +93,7 @@ bool AwgDevice::setCh1Output(uint32_t output_OnOff)
     return false;
 }
 
-bool AwgDevice::setCh2Output(uint32_t output_OnOff)
+bool AwgSerialDeviceBase::setCh2Output(uint32_t output_OnOff)
 {
     if (sendCh2OutputCommand(output_OnOff))
     {
@@ -103,7 +103,7 @@ bool AwgDevice::setCh2Output(uint32_t output_OnOff)
     return false;
 }
 
-bool AwgDevice::setCh1Freq(uint32_t frequency_Hz)
+bool AwgSerialDeviceBase::setCh1Freq(uint32_t frequency_Hz)
 {
     if (sendCh1FrequencyCommand(frequency_Hz))
     {
@@ -113,7 +113,7 @@ bool AwgDevice::setCh1Freq(uint32_t frequency_Hz)
     return false;
 }
 
-bool AwgDevice::setCh2Freq(uint32_t frequency_Hz)
+bool AwgSerialDeviceBase::setCh2Freq(uint32_t frequency_Hz)
 {
     if (sendCh2FrequencyCommand(frequency_Hz))
     {
@@ -123,7 +123,7 @@ bool AwgDevice::setCh2Freq(uint32_t frequency_Hz)
     return false;
 }
 
-bool AwgDevice::setCh1Ampl(uint32_t ampl_mV)
+bool AwgSerialDeviceBase::setCh1Ampl(uint32_t ampl_mV)
 {
     if (sendCh1AmplitudeCommand(ampl_mV))
     {
@@ -133,7 +133,7 @@ bool AwgDevice::setCh1Ampl(uint32_t ampl_mV)
     return false;
 }
 
-bool AwgDevice::setCh2Ampl(uint32_t ampl_mV)
+bool AwgSerialDeviceBase::setCh2Ampl(uint32_t ampl_mV)
 {
     if (sendCh2AmplitudeCommand(ampl_mV))
     {
@@ -143,7 +143,7 @@ bool AwgDevice::setCh2Ampl(uint32_t ampl_mV)
     return false;
 }
 
-bool AwgDevice::setCh1Phase(uint32_t phase_deziDegree)
+bool AwgSerialDeviceBase::setCh1Phase(uint32_t phase_deziDegree)
 {
     if (sendCh1PhaseCommand(phase_deziDegree))
     {
@@ -153,7 +153,7 @@ bool AwgDevice::setCh1Phase(uint32_t phase_deziDegree)
     return false;
 }
 
-bool AwgDevice::setCh2Phase(uint32_t phase_deziDegree)
+bool AwgSerialDeviceBase::setCh2Phase(uint32_t phase_deziDegree)
 {
     if (sendCh2PhaseCommand(phase_deziDegree))
     {
@@ -163,7 +163,7 @@ bool AwgDevice::setCh2Phase(uint32_t phase_deziDegree)
     return false;
 }
 
-bool AwgDevice::setCh1Offset(int32_t offset_mV)
+bool AwgSerialDeviceBase::setCh1Offset(int32_t offset_mV)
 {
     if (sendCh1OffsetCommand(offset_mV))
     {
@@ -173,7 +173,7 @@ bool AwgDevice::setCh1Offset(int32_t offset_mV)
     return false;
 }
 
-bool AwgDevice::setCh2Offset(int32_t offset_mV)
+bool AwgSerialDeviceBase::setCh2Offset(int32_t offset_mV)
 {
     if (sendCh2OffsetCommand(offset_mV))
     {
@@ -182,19 +182,3 @@ bool AwgDevice::setCh2Offset(int32_t offset_mV)
     }
     return false;
 }
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wuninitialized"
-bool AwgDevice::sendCh1WaveTypeCommand(WaveType waveType) { waveType = waveType; return false; };
-bool AwgDevice::sendCh2WaveTypeCommand(WaveType waveType) { waveType = waveType; return false; };
-bool AwgDevice::sendCh1OutputCommand(uint32_t output_OnOff) { output_OnOff = output_OnOff; return false; };
-bool AwgDevice::sendCh2OutputCommand(uint32_t output_OnOff) { output_OnOff = output_OnOff; return false; };
-bool AwgDevice::sendCh1FrequencyCommand(uint32_t frequency_Hz) { frequency_Hz = frequency_Hz; return false; };
-bool AwgDevice::sendCh2FrequencyCommand(uint32_t frequency_Hz) { frequency_Hz = frequency_Hz; return false; };
-bool AwgDevice::sendCh1AmplitudeCommand(uint32_t ampl_mV) { ampl_mV = ampl_mV; return false; };
-bool AwgDevice::sendCh2AmplitudeCommand(uint32_t ampl_mV) { ampl_mV = ampl_mV; return false; };
-bool AwgDevice::sendCh1PhaseCommand(uint32_t phase_deziDegree) { phase_deziDegree = phase_deziDegree; return false; };
-bool AwgDevice::sendCh2PhaseCommand(uint32_t phase_deziDegree) { phase_deziDegree = phase_deziDegree; return false; };
-bool AwgDevice::sendCh1OffsetCommand(int32_t offset_mV) { offset_mV = offset_mV; return false; };
-bool AwgDevice::sendCh2OffsetCommand(int32_t offset_mV) { offset_mV = offset_mV; return false; };
-#pragma GCC diagnostic pop
