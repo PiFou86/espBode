@@ -4,39 +4,41 @@
 #include <stdint.h>
 
 /* AWG device config */
-enum ConfigAwgType
-{
-    UNDEFINED = 0,
-    FY6800 = 1,
-    FY6900 = 2,
-    JDS2800 = 3,
-    _LAST_
-};
-
 class ConfigAwgDevice
 {
 public:
-  enum ConfigAwgType deviceType;
+    enum ConfigAwgType
+    {
+        UNDEFINED = 0,
+        FY6800 = 1,
+        FY6900 = 2,
+        JDS2800 = 3,
+        _LAST_
+    };
 
-  ConfigAwgDevice()
-  {
-      /* Select the target AWG from: FY6900, FY6800 or JDS2800 */
-      deviceType = ConfigAwgType::FY6900;
-  }
+    enum ConfigAwgType deviceType;
+
+    ConfigAwgDevice()
+    {
+        /* Select the target AWG from: FY6900, FY6800 or JDS2800 */
+        deviceType = ConfigAwgType::FY6900;
+    }
 };
 
 
 /* WiFi config */
-enum ConfigWifiMode
-{
-    WIFI_MODE_AP,
-    WIFI_MODE_CLIENT,
-};
-
 class ConfigWifi
 {
 public:  
+    enum ConfigWifiMode
+    {
+        WIFI_MODE_AP,
+        WIFI_MODE_CLIENT,
+    };
+
     enum ConfigWifiMode wifiMode;
+    const char* wifiSsid;
+    const char* wifiPsk;
     bool staticIp;
     const char* staticIpAdr;
     const char* staticIpMask;

@@ -5,33 +5,33 @@ AwgFY6900::FY6900WaveType AwgFY6900::MapWaveType(AwgDevice::WaveType waveType)
     switch (waveType)
     {
     case AwgDevice::WaveType_Sine:
-        return FY6900WaveType_Sine;
+        return WaveType_Sine;
     case AwgDevice::WaveType_Square:
-        return FY6900WaveType_Square;
+        return WaveType_Square;
     case AwgDevice::WaveType_Pulse:
-        return FY6900WaveType_Impulse; //??
+        return WaveType_Impulse; //??
     case AwgDevice::WaveType_Triangle:
-        return FY6900WaveType_Triangle;
+        return WaveType_Triangle;
     case AwgDevice::WaveType_DC:
-        return FY6900WaveType_DC;
+        return WaveType_DC;
     case AwgDevice::WaveType_Noise:
-        return FY6900WaveType_Noise;
+        return WaveType_Noise;
     case AwgDevice::WaveType_Lorentz:
-        return FY6900WaveType_Lorentz;
+        return WaveType_Lorentz;
     case AwgDevice::WaveType_PosStair:
-        return FY6900WaveType_PosStair;
+        return WaveType_PosStair;
     case AwgDevice::WaveType_NegStair:
-        return FY6900WaveType_NegStair;
+        return WaveType_NegStair;
     case AwgDevice::WaveType_ExpFall:
-        return FY6900WaveType_PosExp; //??
+        return WaveType_PosExp; //??
     case AwgDevice::WaveType_Partialsine:
-        return FY6900WaveType_PosHalfSin; //??
+        return WaveType_PosHalfSin; //??
     case AwgDevice::WaveType_CMOS:
-        return FY6900WaveType_CMOS;
+        return WaveType_CMOS;
     default:
       break;
     }
-    return FY6900WaveType_UNDEFINED;
+    return WaveType_UNDEFINED;
 }
 
 bool AwgFY6900::sendCh1WaveTypeCommand(WaveType waveType)

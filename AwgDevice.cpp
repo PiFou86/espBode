@@ -33,6 +33,11 @@ AwgDevice::AwgDevice(HardwareSerial* serial)
     _state.ch2Offset = 0;
 }
 
+AwgDevice::AwgDeviceState AwgDevice::getDeviceState()
+{
+    return _state;
+}
+
 AwgDevice::AwgDeviceState AwgDevice::getDeviceDefaults()
 {
     return _defaults;

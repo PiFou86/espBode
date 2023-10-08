@@ -51,13 +51,15 @@ void setup() {
     // todo: load espConfig from Filesystem and/or define interactively via seial interface...
     g_espConfig = new ConfigEspBode();
     /* Select the target AWG device */
-    g_espConfig->awgConfig.deviceType = ConfigAwgType::FY6900;
+    g_espConfig->awgConfig.deviceType = ConfigAwgDevice::FY6900;
     /* Select Wifi configuration
         WIFI_MODE_AP      : creates new network that oscilloscope can connect to
         WIFI_MODE_CLIENT  : joins existing network 
         staticIp = false  : uses DHCP (make the router assigne always same IP) 
         staticIp = true   : uses static IP definiton (specificaly for AP mode) */
-    g_espConfig->wifiConfig.wifiMode = ConfigWifiMode::WIFI_MODE_CLIENT;
+    g_espConfig->wifiConfig.wifiMode = ConfigWifi::WIFI_MODE_CLIENT;
+    g_espConfig->wifiConfig.wifiSsid = WIFI_SSID;
+    g_espConfig->wifiConfig.wifiPsk = WIFI_PSK;
     g_espConfig->wifiConfig.staticIp = false;
     g_espConfig->wifiConfig.staticIpAdr = "192.168.1.6";
     g_espConfig->wifiConfig.staticIpMask = "255.255.255.0";
@@ -76,11 +78,11 @@ void setup() {
         gateway.fromString(g_espConfig->wifiConfig.staticIpGateway);
         WiFi.config(ip, gateway, mask);
     }
-    if (g_espConfig->wifiConfig.wifiMode == ConfigWifiMode::WIFI_MODE_CLIENT) {
+    if (g_espConfig->wifiConfig.wifiMode == ConfigWifi::WIFI_MODE_CLIENT) {
         WiFi.mode(WiFiMode_t::WIFI_STA);
-        WiFi.begin(WIFI_SSID, WIFI_PSK);
-    } else if (g_espConfig->wifiConfig.wifiMode == ConfigWifiMode::WIFI_MODE_AP) {
-        WiFi.softAP(WIFI_SSID, WIFI_PSK);
+        WiFi.begin(g_espConfig->wifiConfig.wifiSsid, g_espConfig->wifiConfig.wifiPsk);
+    } else if (g_espConfig->wifiConfig.wifiMode == ConfigWifi::WIFI_MODE_AP) {
+        WiFi.softAP(g_espConfig->wifiConfig.wifiSsid, g_espConfig->wifiConfig.wifiPsk);
     } else {
       //#error PLEASE SELECT WIFI_MODE_AP OR WIFI_MODE_CLIENT!
     }
@@ -96,11 +98,11 @@ void setup() {
 
     g_serial->println("\n----- Connecting to UART AWG device -----");
     // create AwgDevice
-    if (g_espConfig->awgConfig.deviceType == ConfigAwgType::FY6800) {
+    if (g_espConfig->awgConfig.deviceType == ConfigAwgDevice::FY6800) {
       g_awgDevice = new AwgFY6800(g_serial);
-    } else if (g_espConfig->awgConfig.deviceType == ConfigAwgType::FY6900) {
+    } else if (g_espConfig->awgConfig.deviceType == ConfigAwgDevice::FY6900) {
       g_awgDevice = new AwgFY6900(g_serial);
-    } else if (g_espConfig->awgConfig.deviceType == ConfigAwgType::JDS2800) {
+    } else if (g_espConfig->awgConfig.deviceType == ConfigAwgDevice::JDS2800) {
       //g_awgDevice = new AwgDS2800(g_serial);
     }
     // init awg (should be done by Siglent emulator)
