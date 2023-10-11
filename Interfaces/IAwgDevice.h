@@ -67,4 +67,6 @@ public:
     /* Offset is in mV: 12.345V = 12345 */
     virtual bool setCh1Offset(int32_t offset_mV) = 0;
     virtual bool setCh2Offset(int32_t offset_mV) = 0;
+
+    //virtual ~IAwgDevice() = 0;
 };

@@ -6,18 +6,21 @@
 #include "ESPTelnet.h"
 
 #include "esp_config.h"
-#include "EspNetwork.h"
 #include "Interfaces/IAwgDevice.h"
+#include "Interfaces/ILxiDevice.h"
+//#include "Interfaces/IScpiDevice.h"
+#include "LxiScpiWifiDevice.h"
 
 // include the available concrete Awg device implementations
 #include "AwgFY6800.h"
 #include "AwgFY6900.h"
 #include "AwgJDS2800.h"
+#include "SDG1062Emulator.h"
 
 ConfigEspBode *g_espConfig;
-WiFiServer *g_rpc_server;
-WiFiServer *g_lxi_server;
 IAwgDevice *g_awgDevice;
+SDG1062Emulator *g_sdgEmulator; //IScpiDevice *g_sdgEmulator;
+ILxiDevice *g_lxiDevice;
 HardwareSerial *g_serial;
 ESPTelnet telnet;
 
@@ -107,61 +110,36 @@ void setup() {
     } else if (g_espConfig->awgConfig.deviceType == ConfigAwgDevice::JDS2800) {
       //g_awgDevice = new AwgDS2800(g_serial);
     }
+
     // init awg (should be done by Siglent emulator)
     g_awgDevice->initDevice(g_awgDevice->getDeviceDefaults());
 
 
     g_serial->println("\n----- Starting Siglent AWG LXI Network emulation -----");
-    // network initialization
-    g_rpc_server = new WiFiServer(g_espConfig->siglentConfig.rpcServerPort);
-    g_lxi_server = new WiFiServer(g_espConfig->siglentConfig.lxiServerPort); 
+    g_sdgEmulator = new SDG1062Emulator(g_awgDevice);
+    g_lxiDevice = new LxiScpiWifiDevice(g_sdgEmulator->lxiConfig(), g_sdgEmulator);
 
+    // network initialization
+    g_lxiDevice->begin();
     telnet.begin();
-    g_rpc_server->begin();
-    g_lxi_server->begin();
 }
 
 
 void loop() {
 
-    WiFiClient rpc_client;
-    do
-    {
-        rpc_client = g_rpc_server->accept();
-    }
-    while(!rpc_client);
-    DEBUG("RPC connection established");
-
-    EspNetwork *rpcHandler = new EspNetwork(&rpc_client, &(g_espConfig->siglentConfig), g_awgDevice);
-
-    rpcHandler->handlePacket();
-    delete(rpcHandler);
-    rpc_client.stop();
-
-    WiFiClient lxi_client;
-    //lxi_client.setTimeout(1000);
-    do
-    {
-        lxi_client = g_lxi_server->accept();
-    }
-    while(!lxi_client);
-    lxi_client.setTimeout(1000);
-    DEBUG("LXI connection established");
-
-    EspNetwork *lxiHandler = new EspNetwork(&lxi_client, &(g_espConfig->siglentConfig), g_awgDevice);
+    g_lxiDevice->connect();
 
     while(1)
     {
-        telnet.loop();        
-        if(0 != lxiHandler->handlePacket())
+        telnet.loop();
+
+        if (!g_lxiDevice->loop())
         {
-            delete(lxiHandler);
-            lxi_client.stop();
             DEBUG("RESTARTING");
             return;
-        }else{
-          // Lets give the user some feedback
-          digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
         }
+
+        // Lets give the user some feedback
+        digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
     }        
 }

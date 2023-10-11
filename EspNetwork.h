@@ -81,19 +81,20 @@ typedef struct
 
 
 class WiFiClient;
-class IAwgDevice; 
-class ILxiDeviceConfig;
+class IScpiDevice;
+class LxiDeviceConfig;
 
 class EspNetwork
 {
 private:
     WiFiClient* _client;
-    ILxiDeviceConfig* _lxiConfig;
-    IAwgDevice* _awgDevice;
+    LxiDeviceConfig* _lxiConfig;
+    IScpiDevice* _scpiDevice;
+    char* _writeBuffer;
     char* _readBuffer;
 
 public:
-    EspNetwork(WiFiClient* client, ILxiDeviceConfig* lxiConfig, IAwgDevice* awgDevice);
+    EspNetwork(WiFiClient* client, LxiDeviceConfig* lxiConfig, IScpiDevice* scpiDevice);
 
     uint8_t handlePacket();
 
@@ -107,9 +108,4 @@ private:
     uint8_t handlePortmap(uint8_t* packet);
     void parseVxiWrite(uint8_t* packet);
     uint8_t handleVxi11(uint8_t* packet);
-
-    // from esp_parser.h
-    static int32_t parseDecimal(char *msg);
-    static uint32_t parseNumber(char *msg);
-    void handleWriteMsg(char *msg, uint8_t len);
 };

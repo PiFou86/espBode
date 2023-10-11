@@ -1,4 +1,5 @@
 #include "AwgSerialDeviceBase.h"
+#include <HardwareSerial.h> //class HardwareSerial
 #include <string.h>
 
 AwgSerialDeviceBase::AwgSerialDeviceBase(HardwareSerial* serial)

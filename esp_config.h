@@ -2,7 +2,6 @@
 #ifndef _ESP_CONFIG_H_
 #define _ESP_CONFIG_H_
 
-#include "Interfaces/ILxiDevice.h"
 #include <stdint.h>
 
 /* AWG device config */
@@ -66,7 +65,6 @@ class ConfigEspBode
 public:
     ConfigWifi       wifiConfig;
     ConfigAwgDevice  awgConfig;
-    ILxiDeviceConfig siglentConfig;
 };
 
 

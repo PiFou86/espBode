@@ -1,8 +1,10 @@
 #pragma once
 
-#include "Interfaces/IAwgDevice.h"
 #include "ScpiSerialDevice.h"
+#include "Interfaces/IAwgDevice.h"
 #include <stdint.h> //uint8_t, uint32_t
+
+class HardwareSerial;
 
 class AwgSerialDeviceBase : public IAwgDevice, public ScpiSerialDevice
 {

@@ -1,5 +1,5 @@
 #include "ScpiSerialDevice.h"
-//#include <string.h>
+#include <HardwareSerial.h> //class HardwareSerial
 
 ScpiSerialDevice::ScpiSerialDevice(HardwareSerial* serial)
 {
@@ -44,7 +44,7 @@ const char* ScpiSerialDevice::lastScpiCommand()
     return _lastCommand.c_str();
 }
 
-const char* ScpiSerialDevice::lastScpiCommandReply()
+const char* ScpiSerialDevice::lastScpiReply()
 {
     return _lastReply.c_str();
 }

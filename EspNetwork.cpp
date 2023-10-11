@@ -26,17 +26,18 @@
 
 #include "EspNetwork.h"
 #include <ESP8266WiFi.h>
-#include "Interfaces/IAwgDevice.h"
-#include "Interfaces/ILxiDevice.h"
+#include "Interfaces/IScpiDevice.h"
+#include "Interfaces/LxiDeviceConfig.h"
+
 
 EspNetwork::EspNetwork(
     WiFiClient* client,
-    ILxiDeviceConfig* lxiConfig,
-    IAwgDevice* awgDevice)
+    LxiDeviceConfig* lxiConfig,
+    IScpiDevice *scpiDevice)
 {
     _client = client;
     _lxiConfig = lxiConfig;
-    _awgDevice = awgDevice;
+    _scpiDevice = scpiDevice;
 }
 
 /* Packet length must be four-bytes aligned. This function generates remaining
@@ -201,7 +202,28 @@ void EspNetwork::parseVxiWrite(uint8_t *packet)
     rcpreq_devReadWrite *request = (rcpreq_devReadWrite*)packet;
 
     swapEndianess((uint8_t*)&(request->data), request->dataLen);
-    handleWriteMsg((char*)&(request->data), request->dataLen);
+    //handleWriteMsg((char*)&(request->data), request->dataLen);
+
+    // build _writeBuffer (make the request->data a 0 terminated string)
+    _writeBuffer = (char*)malloc(request->dataLen + 1);
+    strncpy(_writeBuffer, (char*)&(request->data), request->dataLen);
+    _writeBuffer[request->dataLen] = 0;
+
+    // execute SCPI command
+    _scpiDevice->sendScpiCommand(_writeBuffer);
+
+    if (_writeBuffer != nullptr) {
+        free((void*)_writeBuffer); // Prevent memory leaks
+        _writeBuffer = nullptr;
+    }
+
+    // build _readBuffer (copy the SCPI command replay)
+    if (_readBuffer != nullptr) {
+        free((void*)_readBuffer);  // Prevent memory leaks - also free in destructor!
+        _readBuffer = nullptr;
+    }
+    _readBuffer = (char*)malloc(strlen(_scpiDevice->lastScpiReply()) + 1);
+    strcpy((char*)_readBuffer, _scpiDevice->lastScpiReply());
 }
 
 uint8_t EspNetwork::handleVxi11(uint8_t *packet)
@@ -293,154 +315,4 @@ uint8_t EspNetwork::handlePacket()
     free(header);
 
     return retVal;
-}
-
-//-----------------------------------------------------------------------------------
-// from esp_parser.cpp
-
-uint32_t EspNetwork::parseNumber(char *msg)
-{
-    uint32_t number = 0;
-    while(0<=(msg[0]-'0') && (msg[0]-'0')<=9)
-    {
-        number*=10;
-        number+=msg[0]-'0';
-        msg++;
-    }
-    return number;
-}
-
-/* Similar to parseNumber, but handles also decimal '.' and '-' sign.0
-Return value is multiplied *1000 to include the decimal part:
-    123.345 -> 123456
-    -1.2    ->  -1200 */
-int32_t EspNetwork::parseDecimal(char *msg)
-{
-    uint8_t dot = 0;
-    int32_t multiplier = 1000;
-    int32_t number = 0;
-
-    if(msg[0] == '-')
-    {
-        multiplier*=-1;
-        msg++;
-    }
-
-    while((0<=(msg[0]-'0') && (msg[0]-'0')<=9) || msg[0] == '.')
-    {
-        if(msg[0] == '.')
-        {
-            dot = 1;
-            msg++;
-            continue;
-        }
-        if(dot) multiplier/=10;
-        number*=10;
-        number+=msg[0]-'0';
-        msg++;
-    }
-    return number*multiplier;
-}
-
-void EspNetwork::handleWriteMsg(char *msg, uint8_t len)
-{
-    uint8_t selectedChannel = 1;
-    while(len>0)
-    {
-        /* ID request message, we preapare answer in _readBuffer */
-        if(0 == strncmp(msg, "IDN-SGLT-PRI?", 13))
-        {
-            if(_readBuffer != NULL) free((void*)_readBuffer); /* Prevent memory leaks */
-            _readBuffer = (char*)malloc(strlen(_lxiConfig->deviceID)+1);
-            strcpy((char*)_readBuffer, _lxiConfig->deviceID);
-            break;
-        }
-
-        if(0 == strncmp(msg, "C1:", 3))
-        {
-            selectedChannel = 1;
-            msg+=3;
-            len-=3;
-        }
-
-        if(0 == strncmp(msg, "C2:", 3))
-        {
-            selectedChannel = 2;
-            msg+=3;
-            len-=3;
-        }
-
-        if(0 == strncmp(msg, "BSWV WVTP,", 10))
-        {
-            msg+=10;
-            len-=10;
-
-            if(0 == strncmp(msg, "SINE,",5))
-            {
-                msg+=5;
-                len-=5;
-                selectedChannel==1
-                  ? _awgDevice->setCh1WaveType(IAwgDevice::WaveType_Sine)
-                  : _awgDevice->setCh2WaveType(IAwgDevice::WaveType_Sine);
-            }
-        }
-
-        if(0 == strncmp(msg, "PHSE,", 5))
-        {
-            msg+=5;
-            len-=5;
-            selectedChannel==1 
-              ? _awgDevice->setCh1Phase(parseNumber(msg))
-              : _awgDevice->setCh2Phase(parseNumber(msg));
-        }
-
-        if(0 == strncmp(msg, "FRQ,", 4))
-        {
-            msg+=4;
-            len-=4;
-            selectedChannel==1
-              ? _awgDevice->setCh1Freq(parseNumber(msg))
-              : _awgDevice->setCh2Freq(parseNumber(msg));
-        }
-
-        if(0 == strncmp(msg, "AMP,", 4))
-        {
-            msg+=4;
-            len-=4;
-            selectedChannel==1
-              ? _awgDevice->setCh1Ampl(parseDecimal(msg))
-              : _awgDevice->setCh2Ampl(parseDecimal(msg));
-        }
-
-        if(0 == strncmp(msg, "OFST,", 5))
-        {
-            msg+=5;
-            len-=5;
-            selectedChannel==1 
-              ? _awgDevice->setCh1Offset(parseDecimal(msg))
-              : _awgDevice->setCh2Offset(parseDecimal(msg));
-        }
-
-        if(0 == strncmp(msg, "OUTP ON", 7))
-        {
-            msg+=7;
-            len-=7;
-            selectedChannel==1
-              ? _awgDevice->setCh1Output(1)
-              : _awgDevice->setCh2Output(1);
-        }
-
-        if(0 == strncmp(msg, "OUTP OFF", 8))
-        {
-            msg+=8;
-            len-=8;
-            selectedChannel==1
-              ? _awgDevice->setCh1Output(0)
-              : _awgDevice->setCh2Output(0);
-        }
-
-        /* Unknown string, skip one character */
-        msg++;
-        len--;
-    }
 }

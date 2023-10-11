@@ -1,9 +1,10 @@
 #pragma once
 
 #include "Interfaces/IScpiDevice.h"
-#include <HardwareSerial.h>
 #include <string> //std::string
 #include <stdint.h> //uint8_t
+
+class HardwareSerial;
 
 class ScpiSerialDevice : public IScpiDevice
 {
@@ -11,7 +12,7 @@ public:
     ScpiSerialDevice(HardwareSerial* serial);
 
     virtual const char* lastScpiCommand();
-    virtual const char* lastScpiCommandReply();
+    virtual const char* lastScpiReply();
     virtual bool sendScpiCommand(const char* cmdPattern);
 
 protected:
@@ -21,6 +22,6 @@ protected:
 
 protected:
     HardwareSerial* _serial = nullptr;
-    String _lastCommand;
-    String _lastReply;
+    std::string _lastCommand;
+    std::string _lastReply;
 };
