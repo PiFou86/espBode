@@ -13,6 +13,13 @@ SDG1062Emulator::SDG1062Emulator(IAwgDevice* targetAwgDevice)
     _lxiConfig->deviceID = "IDN-SGLT-PRI SDG1062X\n";
     _lxiConfig->rpcServerPort = 111;
     _lxiConfig->lxiServerPort = 703;
+
+    initAwg();
+}
+
+bool SDG1062Emulator::initAwg()
+{
+    return _awgDevice->initDevice(_awgDevice->getDeviceDefaults());
 }
 
 LxiDeviceConfig* SDG1062Emulator::lxiConfig()

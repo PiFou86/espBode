@@ -19,6 +19,7 @@ public:
     virtual bool sendScpiCommand(const char* cmdPattern);
 
 protected:
+    bool initAwg();
     // from esp_parser.h
     static int32_t parseDecimal(const char* msg);
     static uint32_t parseNumber(const char* msg);

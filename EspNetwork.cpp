@@ -288,6 +288,8 @@ uint8_t EspNetwork::handleVxi11(uint8_t *packet)
 
 uint8_t EspNetwork::handlePacket()
 {
+    DEBUG("EspNetwork::handlePacket() - start");
+
     uint8_t retVal = 0;
     rpcreq_header *header;
     if(0 == receiveRpcPacket((uint8_t**)&header))
@@ -299,10 +301,12 @@ uint8_t EspNetwork::handlePacket()
 
     if (header->program == _lxiConfig->RPC_PROGRAM_PORTMAP) 
     {
+        DEBUG("EspNetwork::handlePacket() - CALLING handlePortmap()");
         retVal = handlePortmap((uint8_t*)header);
     } 
     else if (header->program == _lxiConfig->RPC_PROGRAM_VXI11)
     {
+        DEBUG("EspNetwork::handlePacket() - CALLING handleVxi11()");
         retVal = handleVxi11((uint8_t*)header);
     }
     else

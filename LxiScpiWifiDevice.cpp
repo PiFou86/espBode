@@ -39,6 +39,22 @@ LxiScpiWifiDevice::LxiScpiWifiDevice(LxiDeviceConfig *lxiConfig, IScpiDevice *sc
     _lxiServer = new WiFiServer(_lxiConfig->lxiServerPort); 
 }
 
+LxiScpiWifiDevice::~LxiScpiWifiDevice()
+{
+    disconnect();
+    if (_rpcServer != nullptr)
+    {
+        delete _rpcServer;
+        _rpcServer = nullptr;
+    }
+    if (_lxiServer != nullptr)
+    {
+        delete _lxiServer;
+        _lxiServer = nullptr;
+    }
+}
+
+
 bool LxiScpiWifiDevice::begin()
 {
     _rpcServer->begin();
@@ -48,18 +64,31 @@ bool LxiScpiWifiDevice::begin()
 
 bool LxiScpiWifiDevice::connect()
 {
+    DEBUG("LxiScpiWifiDevice::connect() - start");
     WiFiClient rpcClient;
     do
     {
         rpcClient = _rpcServer->accept();
+        if (!rpcClient) 
+        {
+            delay(1000);
+            DEBUG(".");
+        }
     }
     while(!rpcClient);
     DEBUG("RPC connection established");
 
     EspNetwork *rpcHandler = new EspNetwork(&rpcClient, _lxiConfig, _scpiDevice);
-    rpcHandler->handlePacket();
-    delete(rpcHandler);
+    auto rpcHandlePacketReturn = rpcHandler->handlePacket();
+    delete rpcHandler;
     rpcClient.stop();
+
+    if(rpcHandlePacketReturn != 0)
+    {
+        disconnect();
+        DEBUG("LxiScpiWifiDevice::connect() - rpcHandler->handlePacket() failed");
+        return false;
+    }
 
     _lxiClient.setTimeout(1000);
     do
@@ -71,17 +100,48 @@ bool LxiScpiWifiDevice::connect()
     DEBUG("LXI connection established");
 
     _lxiHandler = new EspNetwork(&_lxiClient, _lxiConfig, _scpiDevice);
+    DEBUG("LxiScpiWifiDevice::connect() - end");
+    return true;
+}
+
+bool LxiScpiWifiDevice::disconnect()
+{
+    DEBUG("LxiScpiWifiDevice::disconnect() - start");
+    if (_lxiHandler != nullptr)
+    {
+        DEBUG("LxiScpiWifiDevice::disconnect() - delete _lxiHandler");
+        delete _lxiHandler;
+        _lxiHandler = nullptr;
+    }
+    if (_lxiClient)
+    {
+        DEBUG("LxiScpiWifiDevice::disconnect() - delete _lxiClient.stop()");
+        _lxiClient.stop();
+    }
+    DEBUG("LxiScpiWifiDevice::disconnect() - end");
     return true;
 }
 
 bool LxiScpiWifiDevice::loop()
 {
+    //DEBUG("LxiScpiWifiDevice::loop() - start");
+    if (!_lxiClient || _lxiHandler == nullptr)
+    {
+        if (!connect())
+        {
+            DEBUG("LxiScpiWifiDevice::loop() - connect() failed");
+            disconnect();
+            return false;
+        }
+    }
+
     if(0 != _lxiHandler->handlePacket())
     {
-        delete(_lxiHandler);
-        _lxiClient.stop();
-        DEBUG("RESTARTING");
+        DEBUG("LxiScpiWifiDevice::loop() - handlePacket() failed");
+        disconnect();
         return false;
     }
+
+    //DEBUG("LxiScpiWifiDevice::loop() - end");
     return true;
 }

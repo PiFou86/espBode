@@ -12,9 +12,12 @@ class LxiScpiWifiDevice : public ILxiDevice
 {
 public:
     LxiScpiWifiDevice(LxiDeviceConfig *lxiConfig, IScpiDevice *scpiDevice);
+    virtual ~LxiScpiWifiDevice();
+
+    virtual bool connect();
+    virtual bool disconnect();
 
     virtual bool begin();
-    virtual bool connect();
     virtual bool loop();
 
 protected:

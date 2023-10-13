@@ -111,9 +111,6 @@ void setup() {
       //g_awgDevice = new AwgDS2800(g_serial);
     }
 
-    // init awg (should be done by Siglent emulator)
-    g_awgDevice->initDevice(g_awgDevice->getDeviceDefaults());
-
 
     g_serial->println("\n----- Starting Siglent AWG LXI Network emulation -----");
     g_sdgEmulator = new SDG1062Emulator(g_awgDevice);
@@ -127,19 +124,20 @@ void setup() {
 
 void loop() {
 
-    g_lxiDevice->connect();
-
+    //telnet.loop();
+    //DEBUG("ENTER loop()");
     while(1)
     {
         telnet.loop();
 
+        g_serial->print(".");
         if (!g_lxiDevice->loop())
         {
             DEBUG("RESTARTING");
             return;
         }
 
-        // Lets give the user some feedback
+        // Lets give the user some hardware feedback
         digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
     }        
 }
