@@ -3,15 +3,16 @@
 #include "Interfaces/ILxiDevice.h"
 
 class LxiDeviceConfig;
+class ITerminal;
 class IScpiDevice;
 class WiFiServer;
+class WiFiClient;
 class EspNetwork;
-#include <ESP8266WiFi.h> //class WiFiServer, WifiClient
 
 class LxiScpiWifiDevice : public ILxiDevice
 {
 public:
-    LxiScpiWifiDevice(LxiDeviceConfig *lxiConfig, IScpiDevice *scpiDevice);
+    LxiScpiWifiDevice(LxiDeviceConfig *lxiConfig, IScpiDevice *scpiDevice, ITerminal *terminal = nullptr);
     virtual ~LxiScpiWifiDevice();
 
     virtual bool connect();
@@ -21,11 +22,11 @@ public:
     virtual bool loop();
 
 protected:
+    ITerminal* _terminal;
     LxiDeviceConfig* _lxiConfig;
     IScpiDevice* _scpiDevice;
     WiFiServer* _rpcServer;
     WiFiServer* _lxiServer;
+    WiFiClient* _lxiClient;
     EspNetwork* _lxiHandler;
-    WiFiClient _lxiClient;
 };
-

@@ -6,9 +6,6 @@
 #include "ESPTelnet.h"
 
 #include "esp_config.h"
-#include "Interfaces/IAwgDevice.h"
-#include "Interfaces/ILxiDevice.h"
-//#include "Interfaces/IScpiDevice.h"
 #include "LxiScpiWifiDevice.h"
 
 // include the available concrete Awg device implementations
@@ -17,42 +14,53 @@
 #include "AwgJDS2800.h"
 #include "SDG1062Emulator.h"
 
-ConfigEspBode *g_espConfig;
-IAwgDevice *g_awgDevice;
-SDG1062Emulator *g_sdgEmulator; //IScpiDevice *g_sdgEmulator;
-ILxiDevice *g_lxiDevice;
-HardwareSerial *g_serial;
-ESPTelnet telnet;
+ESPTelnet telnet; // global telnet instance, that provides telnet based communiction once the WiFI network connection is established (then used for user communication)
+HardwareSerial *g_serial; // reference to Serial port that is used initially for serial console output but lateron just for communication with connected AWG device
+
+IAwgDevice *g_awgDevice;  // reference (generic AWG Device and also a generic SCPI Device) to the concrete AWG device implementation connected to serial port
+SDG1062Emulator *g_sdgEmulator; //reference to the emulator that translated the LXI network commands for emulated SDG1062-Device into SCPI-AWG-commands)
+//IScpiDevice *g_sdgEmulator;
+ILxiDevice *g_lxiDevice; // holds reference to LXI (network) device connection
+
+ConfigEspBode *g_espConfig; // the concrete configuration instance (WiF connction, concrete AWG type) -> shall be persisted onto ESP-Filesystem and shall be ecitable via Terminal menu)
+
+#include "TerminalSerial.h"
+ITerminal *g_terminal;
+#define TERMINAL_PRINT(text)   TERMINAL_SAFE_PRINT(g_terminal, text)
+#define TERMINAL_PRINTLN(text) TERMINAL_SAFE_PRINTLN(g_terminal, text)
+#define TERMINAL_PRINTF(...)   TERMINAL_SAFE_PRINTF(g_terminal, __VA_ARGS__)
 
 void setup() {
 
     pinMode(LED_BUILTIN, OUTPUT);
 
+    // init serial interface
     g_serial = &Serial;
     g_serial->begin(115200);
-
     // workaround to get g_serial->print() working (synching esp with console)
     for (int i=0; i<6; i++) { g_serial->println("-"); delay(250); }
 
+    // wrap serial into termianl 
+    g_terminal = new TerminalSerial(g_serial);
 
-    g_serial->println("\n----- ESP info -----");
+    TERMINAL_PRINTLN("\n----- ESP info -----");
     // inform about ESP flash capacity
     uint32_t realSize = ESP.getFlashChipRealSize();
     uint32_t ideSize = ESP.getFlashChipSize();
     FlashMode_t ideMode = ESP.getFlashChipMode();
-    g_serial->printf("Flash real id:   %08X\n", ESP.getFlashChipId());
-    g_serial->printf("Flash real size: %u bytes\n", realSize);
-    g_serial->printf("Flash ide  size: %u bytes\n", ideSize);
-    g_serial->printf("Flash ide speed: %u Hz\n", ESP.getFlashChipSpeed());
-    g_serial->printf("Flash ide mode:  %s\n", (ideMode == FM_QIO ? "QIO" : ideMode == FM_QOUT ? "QOUT" : ideMode == FM_DIO  ? "DIO" : ideMode == FM_DOUT ? "DOUT" : "UNKNOWN"));
+    TERMINAL_PRINTF("Flash real id:   %08X\n", ESP.getFlashChipId());
+    TERMINAL_PRINTF("Flash real size: %u bytes\n", realSize);
+    TERMINAL_PRINTF("Flash ide  size: %u bytes\n", ideSize);
+    TERMINAL_PRINTF("Flash ide speed: %u Hz\n", ESP.getFlashChipSpeed());
+    TERMINAL_PRINTF("Flash ide mode:  %s\n", (ideMode == FM_QIO ? "QIO" : ideMode == FM_QOUT ? "QOUT" : ideMode == FM_DIO  ? "DIO" : ideMode == FM_DOUT ? "DOUT" : "UNKNOWN"));
     if (ideSize != realSize) {
-      g_serial->println("Flash chip configuration wrong!");
+      TERMINAL_PRINTLN("Flash chip configuration wrong!");
     } else {
-      g_serial->println("Flash chip configuration ok.");
+      TERMINAL_PRINTLN("Flash chip configuration ok.");
     }
 
 
-    g_serial->println("\n----- Loading config -----");
+    TERMINAL_PRINTLN("\n----- Loading config -----");
     // todo: load espConfig from Filesystem and/or define interactively via seial interface...
     g_espConfig = new ConfigEspBode();
     /* Select the target AWG device */
@@ -71,10 +79,10 @@ void setup() {
     g_espConfig->wifiConfig.staticIpGateway = "192.168.1.1";
 
 
-    g_serial->println("\n----- Enter setup -----");
+    TERMINAL_PRINTLN("\n----- Enter setup -----");
 
 
-    g_serial->println("\n----- Connecting WiFi -----");
+    TERMINAL_PRINTLN("\n----- Connecting WiFi -----");
     // configuring and connecting to WiFi
     if (g_espConfig->wifiConfig.staticIp) {
         IPAddress ip, mask, gateway;
@@ -92,16 +100,16 @@ void setup() {
       //#error PLEASE SELECT WIFI_MODE_AP OR WIFI_MODE_CLIENT!
     }
     // We start by connecting to a WiFi network
-    g_serial->printf("connecting to '%s'  ", WIFI_SSID);
+    TERMINAL_PRINTF("connecting to '%s'  ", WIFI_SSID);
     while (WiFi.status() != WL_CONNECTED) {
         delay(500);
-        g_serial->print(".");
+        TERMINAL_PRINT(".");
         digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
     }
-    g_serial->printf("\nWiFi connected (IP address %s)\n", WiFi.localIP().toString().c_str());
+    TERMINAL_PRINTF("\nWiFi connected (IP address %:s)\n", WiFi.localIP().toString().c_str());
 
 
-    g_serial->println("\n----- Connecting to UART AWG device -----");
+    TERMINAL_PRINTLN("\n----- Connecting to UART AWG device -----");
     // create AwgDevice
     if (g_espConfig->awgConfig.deviceType == ConfigAwgDevice::FY6800) {
       g_awgDevice = new AwgFY6800(g_serial);
@@ -112,28 +120,31 @@ void setup() {
     }
 
 
-    g_serial->println("\n----- Starting Siglent AWG LXI Network emulation -----");
+    TERMINAL_PRINTLN("\n----- Starting Siglent AWG LXI Network emulation -----");
     g_sdgEmulator = new SDG1062Emulator(g_awgDevice);
     g_lxiDevice = new LxiScpiWifiDevice(g_sdgEmulator->lxiConfig(), g_sdgEmulator);
 
     // network initialization
     g_lxiDevice->begin();
+
+    // now that WiFi is connected we can init the telnet and replace the terminal implementation
     telnet.begin();
+    //g_terminal = new TerminalTelnet(&telnet);
 }
 
 
 void loop() {
 
     //telnet.loop();
-    //DEBUG("ENTER loop()");
+    //TERMINAL_PRINTLN("ENTER loop()");
     while(1)
     {
         telnet.loop();
 
-        g_serial->print(".");
+        TERMINAL_PRINT(".");
         if (!g_lxiDevice->loop())
         {
-            DEBUG("RESTARTING");
+            TERMINAL_PRINTLN("RESTARTING");
             return;
         }
 
