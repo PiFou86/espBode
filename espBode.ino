@@ -2,8 +2,16 @@
 #define WIFI_SSID   "wlan_ssid"
 #define WIFI_PSK    "wlan_key"
 
-#include <ESP8266WiFi.h>
+#include "TerminalSerial.h"
+#include "TerminalTelnet.h"
 #include "ESPTelnet.h"
+ESPTelnet telnet; // global telnet instance, that provides telnet based communiction once the WiFI network connection is established (then used for user communication)
+HardwareSerial *g_serial; // reference to Serial port that is used initially for serial console output but lateron just for communication with connected AWG device
+ITerminal *g_terminal;
+#define TERMINAL_PRINT(text)   TERMINAL_SAFE_PRINT(g_terminal, text)
+#define TERMINAL_PRINTLN(text) TERMINAL_SAFE_PRINTLN(g_terminal, text)
+#define TERMINAL_PRINTF(...)   TERMINAL_SAFE_PRINTF(g_terminal, __VA_ARGS__)
+
 
 #include "esp_config.h"
 #include "LxiScpiWifiDevice.h"
@@ -14,21 +22,12 @@
 #include "AwgJDS2800.h"
 #include "SDG1062Emulator.h"
 
-ESPTelnet telnet; // global telnet instance, that provides telnet based communiction once the WiFI network connection is established (then used for user communication)
-HardwareSerial *g_serial; // reference to Serial port that is used initially for serial console output but lateron just for communication with connected AWG device
-
+ConfigEspBode *g_espConfig; // the concrete configuration instance (WiF connction, concrete AWG type) -> shall be persisted onto ESP-Filesystem and shall be ecitable via Terminal menu)
 IAwgDevice *g_awgDevice;  // reference (generic AWG Device and also a generic SCPI Device) to the concrete AWG device implementation connected to serial port
 SDG1062Emulator *g_sdgEmulator; //reference to the emulator that translated the LXI network commands for emulated SDG1062-Device into SCPI-AWG-commands)
 //IScpiDevice *g_sdgEmulator;
 ILxiDevice *g_lxiDevice; // holds reference to LXI (network) device connection
 
-ConfigEspBode *g_espConfig; // the concrete configuration instance (WiF connction, concrete AWG type) -> shall be persisted onto ESP-Filesystem and shall be ecitable via Terminal menu)
-
-#include "TerminalSerial.h"
-ITerminal *g_terminal;
-#define TERMINAL_PRINT(text)   TERMINAL_SAFE_PRINT(g_terminal, text)
-#define TERMINAL_PRINTLN(text) TERMINAL_SAFE_PRINTLN(g_terminal, text)
-#define TERMINAL_PRINTF(...)   TERMINAL_SAFE_PRINTF(g_terminal, __VA_ARGS__)
 
 void setup() {
 
