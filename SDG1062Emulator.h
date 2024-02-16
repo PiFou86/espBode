@@ -1,10 +1,12 @@
 #pragma once
 
-#include "Interfaces/IScpiDevice.h"
-#include <string> //std::string
+#include "IScpiDevice.h"
+//class IAwgDevice;
+#include "IAwgDevice.h"
+//class LxiDeviceConfig;
+#include "LxiDeviceConfig.h"
 
-class IAwgDevice;
-class LxiDeviceConfig;
+#include <string> //std::string
 
 class SDG1062Emulator : public IScpiDevice
 {

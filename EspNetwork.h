@@ -1,5 +1,14 @@
 #pragma once
 
+//class WiFiClient;
+#include <ESP8266WiFi.h>
+//class IScpiDevice;
+#include "IScpiDevice.h"
+//class LxiDeviceConfig;
+#include "LxiDeviceConfig.h"
+//class ITerminal;
+#include "ITerminal.h"
+
 #include <stdint.h>
 
 typedef struct
@@ -80,9 +89,6 @@ typedef struct
 }rpcresp_createLink;
 
 
-class WiFiClient;
-class IScpiDevice;
-class LxiDeviceConfig;
 
 class EspNetwork
 {
@@ -90,11 +96,12 @@ private:
     WiFiClient* _client;
     LxiDeviceConfig* _lxiConfig;
     IScpiDevice* _scpiDevice;
+    ITerminal* _terminal;
     char* _writeBuffer;
     char* _readBuffer;
 
 public:
-    EspNetwork(WiFiClient* client, LxiDeviceConfig* lxiConfig, IScpiDevice* scpiDevice);
+    EspNetwork(WiFiClient* client, LxiDeviceConfig* lxiConfig, IScpiDevice* scpiDevice, ITerminal* terminal);
 
     uint8_t handlePacket();
 

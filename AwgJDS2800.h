@@ -6,7 +6,7 @@ enum JDS2800WaveType
 {
     JDS2800WaveType_Sine          = 0,
     JDS2800WaveType_Square        = 1,
-	JDS2800WaveType_Pulse         = 2,
+	  JDS2800WaveType_Pulse         = 2,
     JDS2800WaveType_Triangle      = 3,
     JDS2800WaveType_Partialsine   = 4,
     JDS2800WaveType_CMOS          = 5,

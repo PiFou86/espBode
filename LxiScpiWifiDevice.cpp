@@ -3,9 +3,6 @@
 #include <ESP8266WiFi.h> //class WiFiServer, WifiClient
 #include "EspNetwork.h" //class EspNetwork
 
-#include "Interfaces/IScpiDevice.h" //class IScpiDevice
-#include "Interfaces/LxiDeviceConfig.h" //class LxiDeviceConfig
-#include "Interfaces/ITerminal.h"
 #define DEBUG(text)  if (_terminal) { _terminal->writeLine(text); }
 
 LxiScpiWifiDevice::LxiScpiWifiDevice(LxiDeviceConfig *lxiConfig, IScpiDevice *scpiDevice, ITerminal *terminal)
@@ -63,7 +60,7 @@ bool LxiScpiWifiDevice::connect()
     while(!rpcClient);
     DEBUG("RPC connection established");
 
-    EspNetwork *rpcHandler = new EspNetwork(&rpcClient, _lxiConfig, _scpiDevice);
+    EspNetwork *rpcHandler = new EspNetwork(&rpcClient, _lxiConfig, _scpiDevice, _terminal);
     auto rpcHandlePacketReturn = rpcHandler->handlePacket();
     delete rpcHandler;
     rpcClient.stop();
@@ -83,7 +80,7 @@ bool LxiScpiWifiDevice::connect()
     _lxiClient->setTimeout(1000);
     DEBUG("LXI connection established");
 
-    _lxiHandler = new EspNetwork(_lxiClient, _lxiConfig, _scpiDevice);
+    _lxiHandler = new EspNetwork(_lxiClient, _lxiConfig, _scpiDevice, _terminal);
     DEBUG("LxiScpiWifiDevice::connect() - end");
     return true;
 }

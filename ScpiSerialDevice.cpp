@@ -1,5 +1,5 @@
+
 #include "ScpiSerialDevice.h"
-#include <HardwareSerial.h> //class HardwareSerial
 
 ScpiSerialDevice::ScpiSerialDevice(HardwareSerial* serial)
 {

@@ -5,6 +5,7 @@
 #include "TerminalSerial.h"
 #include "TerminalTelnet.h"
 #include "ESPTelnet.h"
+
 ESPTelnet telnet; // global telnet instance, that provides telnet based communiction once the WiFI network connection is established (then used for user communication)
 HardwareSerial *g_serial; // reference to Serial port that is used initially for serial console output but lateron just for communication with connected AWG device
 ITerminal *g_terminal;

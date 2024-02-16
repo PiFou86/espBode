@@ -1,10 +1,11 @@
 #pragma once
 
-#include "Interfaces/IScpiDevice.h"
+#include "IScpiDevice.h"
+//class HardwareSerial;
+#include <HardwareSerial.h>
+
 #include <string> //std::string
 #include <stdint.h> //uint8_t
-
-class HardwareSerial;
 
 class ScpiSerialDevice : public IScpiDevice
 {

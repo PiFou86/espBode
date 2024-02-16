@@ -1,6 +1,5 @@
 #include "SDG1062Emulator.h"
-#include "Interfaces/IAwgDevice.h" //class IAwgDevice
-#include "Interfaces/LxiDeviceConfig.h" //class LxiDeviceConfig
+
 #include <string.h> //strncmp,...
 #include <string> //std::string
 

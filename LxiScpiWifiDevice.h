@@ -1,10 +1,14 @@
 #pragma once
 
-#include "Interfaces/ILxiDevice.h"
+//class ILxiDevice;
+#include "ILxiDevice.h"
+//class IScpiDevice;
+#include "IScpiDevice.h"
+//class LxiDeviceConfig;
+#include "LxiDeviceConfig.h"
+//class ITerminal;
+#include "ITerminal.h"
 
-class LxiDeviceConfig;
-class ITerminal;
-class IScpiDevice;
 class WiFiServer;
 class WiFiClient;
 class EspNetwork;

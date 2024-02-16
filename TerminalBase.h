@@ -1,5 +1,6 @@
 #pragma once
-#include "Interfaces/ITerminal.h"
+
+#include "ITerminal.h"
 
 class TerminalBase : public ITerminal
 {
