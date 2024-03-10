@@ -1,20 +1,31 @@
 #pragma once
 
-#include "ITerminal"
-//#include "TerminalSerial.h"
+#include "ITerminal.h"
 
-
-#define TERMINAL_PRINT(text)    ESPTerminal.write(text);
-#define TERMINAL_PRINTLN(text)  ESPTerminal.writeLine(text);}
-#define TERMINAL_PRINTF(...)    {int sz=std::snprintf(nullptr,0,__VA_ARGS__);std::vector<char>buf(sz+1);std::sprintf(buf.data(),__VA_ARGS__);ESPTerminal.write(buf.data());}
+class TerminalSerial;
+class TerminalTelnet;
+class HardwareSerial;
+class ESPTelnet;
 
 class Terminal : public ITerminal
 {
 public:
-  begin();
-  loop();
-  useSerial();
-  useTelnet();
+    Terminal(HardwareSerial* serial, ESPTelnet* telnet);
+    void begin();
+    void loop();
+    void useSerial();
+    void useTelnet();
+
+    virtual char read();
+    virtual void write(const std::string& message);
+    virtual char readKey();
+    virtual std::string readLine();
+    virtual void writeKey(char key);
+    virtual void writeLine(const std::string& message);
+    virtual void writeLine();
+    
 private:
-  ITerminal* _terminal;
+    ITerminal* _terminal;
+    TerminalSerial* _terminalSerial;
+    TerminalTelnet* _terminalTelnet;
 };

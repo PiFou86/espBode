@@ -7,6 +7,8 @@ class TerminalTelnet : public TerminalBase
 {
 public:
     TerminalTelnet(ESPTelnet* telnet);
+    void begin();
+    void loop();
 
     // reads next character - returns 0 if there is no data available
     virtual char read();

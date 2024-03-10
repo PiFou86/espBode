@@ -2,17 +2,17 @@
 #define WIFI_SSID   "wlan_ssid"
 #define WIFI_PSK    "wlan_key"
 
-#include "TerminalSerial.h"
-#include "TerminalTelnet.h"
+#include "Terminal.h"
+
 #include "ESPTelnet.h"
 
-ESPTelnet telnet; // global telnet instance, that provides telnet based communiction once the WiFI network connection is established (then used for user communication)
+ESPTelnet telnet; // global telnet instance, that provides telnet based communication once the WiFI network connection is established (then used for user communication)
 HardwareSerial *g_serial; // reference to Serial port that is used initially for serial console output but lateron just for communication with connected AWG device
-ITerminal *g_terminal;
+Terminal *g_terminal;
+
 #define TERMINAL_PRINT(text)   TERMINAL_SAFE_PRINT(g_terminal, text)
 #define TERMINAL_PRINTLN(text) TERMINAL_SAFE_PRINTLN(g_terminal, text)
 #define TERMINAL_PRINTF(...)   TERMINAL_SAFE_PRINTF(g_terminal, __VA_ARGS__)
-
 
 #include "esp_config.h"
 #include "LxiScpiWifiDevice.h"
@@ -40,8 +40,9 @@ void setup() {
     // workaround to get g_serial->print() working (synching esp with console)
     for (int i=0; i<6; i++) { g_serial->println("-"); delay(250); }
 
-    // wrap serial into termianl 
-    g_terminal = new TerminalSerial(g_serial);
+    // wrap serial and telnet into termianl 
+    g_terminal = new Terminal(g_serial, &telnet);
+    g_terminal->useSerial();
 
     TERMINAL_PRINTLN("\n----- ESP info -----");
     // inform about ESP flash capacity
@@ -106,7 +107,7 @@ void setup() {
         TERMINAL_PRINT(".");
         digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
     }
-    TERMINAL_PRINTF("\nWiFi connected (IP address %:s)\n", WiFi.localIP().toString().c_str());
+    TERMINAL_PRINTF("\nWiFi connected (IP address %s)\n", WiFi.localIP().toString().c_str());
 
 
     TERMINAL_PRINTLN("\n----- Connecting to UART AWG device -----");
@@ -129,17 +130,15 @@ void setup() {
 
     // now that WiFi is connected we can init the telnet and replace the terminal implementation
     telnet.begin();
-    //g_terminal = new TerminalTelnet(&telnet);
+    g_terminal->useTelnet();
 }
 
 
 void loop() {
-
-    //telnet.loop();
-    //TERMINAL_PRINTLN("ENTER loop()");
     while(1)
     {
         telnet.loop();
+        //g_terminal->loop();
 
         TERMINAL_PRINT(".");
         if (!g_lxiDevice->loop())

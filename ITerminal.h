@@ -3,6 +3,7 @@
 #define TERMINAL_SAFE_PRINT(ref,text)   if(ref){(ref)->write(text);}
 #define TERMINAL_SAFE_PRINTLN(ref,text) if(ref){(ref)->writeLine(text);}
 #define TERMINAL_SAFE_PRINTF(ref,...)   if(ref){int sz=std::snprintf(nullptr,0,__VA_ARGS__);std::vector<char>buf(sz+1);std::sprintf(buf.data(),__VA_ARGS__);(ref)->write(buf.data());}
+
 //#define TERMINAL_PRINT(text)   TERMINAL_SAFE_PRINT(g_terminal, text)
 //#define TERMINAL_PRINTLN(text) TERMINAL_SAFE_PRINTLN(g_terminal, text)
 //#define TERMINAL_PRINTF(...)   TERMINAL_SAFE_PRINTF(g_terminal, __VA_ARGS__)
