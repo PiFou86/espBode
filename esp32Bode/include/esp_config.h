@@ -1,9 +1,9 @@
-#ifndef _ESP_CONFIG_H_
-#define _ESP_CONFIG_H_
+#pragma once
 
 #define FY6800 1
 #define FY6900 2
 #define JDS2800 3
+#define JDS6600 4
 
 /* Specify DEBUG output target by defining DEBUG_TO_SERIAL or DEBUG_TO_TELNET (or NONE) */
 //#define DEBUG_TO_SERIAL
@@ -20,8 +20,10 @@
 #define WIFI_MODE_CLIENT
 
 /* WiFi credentials */
-#define WIFI_SSID             "wlan_ssid"
-#define WIFI_PSK              "wlan_key"
+#define WIFI_SSID             "Erable"
+#define WIFI_PSK              "LeoHortense86@@"
+
+#define AWG_PROXY_NAME         "AWGProxy"
 
 /* Comment this for DHCP. However you'll need to obtain IP somehow. */
 //#define STATIC_IP
@@ -75,5 +77,3 @@
 #ifndef DEBUG
   #define DEBUG(TEXT)
 #endif
-
-#endif /* _ESP_CONFIG_H_ */

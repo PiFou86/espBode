@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AWG proxy configuration</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; background: #f2f2f2; padding: 20px; }
+    .container {
+      max-width: 400px;
+      margin: 40px auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    h2 { text-align: center; margin-bottom: 20px; color: #333; }
+    .form-group { margin-bottom: 15px; }
+    label { display: block; margin-bottom: 5px; color: #555; }
+    input, select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    button {
+      width: 100%;
+      padding: 10px;
+      background: #007BFF;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    button:hover { background: #0056b3; }
+    .message {
+      margin-top: 15px;
+      text-align: center;
+      font-size: 14px;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>AWG proxy configuration</h2>
+    <div class="form-group">
+      <label for="ssid">SSID</label>
+      <input type="text" id="ssid" name="ssid" placeholder="Wi-Fi SSID">
+    </div>
+    <div class="form-group">
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" placeholder="Wi-Fi password">
+    </div>
+    <div class="form-group">
+      <label for="mdns">mDNS name</label>
+      <input type="text" id="mdns" name="mdns" placeholder="mDNS name">
+    </div>
+    <div class="form-group">
+      <label for="model">Real AWG model name</label>
+      <select id="model" name="model">
+        <option value="">Loading supported AWG model...</option>
+      </select>
+    </div>
+    <button id="updateBtn">Update</button>
+    <div class="message" id="message"></div>
+  </div>
+
+  <script>
+    function fetchModels() {
+      fetch('/models')
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Error while fetching supported models');
+          }
+          return response.json();
+        })
+        .then(models => {
+          const modelSelect = document.getElementById('model');
+          modelSelect.innerHTML = '';
+          models.forEach(model => {
+            const option = document.createElement('option');
+            option.value = model;
+            option.textContent = model;
+            modelSelect.appendChild(option);
+          });
+
+          fetchConfiguration();
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          document.getElementById('message').textContent = 'Error while fetching supported models.';
+        });
+    }
+
+    function fetchConfiguration() {
+      fetch('/configuration')
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Error while fetching configuration');
+          }
+          return response.json();
+        })
+        .then(config => {
+          if (config.ssid || config.password || config.mdns || config.model) {
+            document.getElementById('ssid').value = config.ssid || "";
+            document.getElementById('password').value = config.password || "";
+            document.getElementById('mdns').value = config.mdns || "";
+            document.getElementById('model').value = config.model || "";
+          }
+        })
+        .catch(error => {
+          console.error('Erreur:', error);
+          document.getElementById('message').textContent = 'Error while fetching configuration';});
+    }
+
+    function updateConfiguration() {
+      const ssid = document.getElementById('ssid').value.trim();
+      const password = document.getElementById('password').value.trim();
+      const mdns = document.getElementById('mdns').value.trim();
+      const model = document.getElementById('model').value.trim();
+      
+      if (!ssid || !password || !mdns || !model) {
+        document.getElementById('message').textContent = "All fields are required.";
+        return;
+      }
+      
+      const data = { ssid, password, mdns, model };
+      
+      fetch('/configuration', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Error while updating configuration');
+        }
+        return response.json();
+      })
+      .then(result => {
+        document.getElementById('message').textContent = 'Configuration updated successfully.';
+      })
+      .catch(error => {
+        console.error('Erreur:', error);
+        document.getElementById('message').textContent = 'Error while updating configuration.';
+      });
+    }
+
+    document.getElementById('updateBtn').addEventListener('click', updateConfiguration);
+
+    fetchModels();
+  </script>
+</body>
+</html>

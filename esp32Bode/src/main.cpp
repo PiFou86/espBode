@@ -1,27 +1,31 @@
 #include <Arduino.h>
 
 #include <WiFi.h>
+#include <ESPmDNS.h>
 
 
 #include <ESPTelnet.h>
 
-#include "esp_network.h"
+#include "AWGNetwork.h"
+#include "AWGParser.h"
+
+#include "AWGProxy/AWGProxyBase.h"
+#include "AWGProxy/Devices/AWGProxyFY6800.h"
+#include "AWGProxy/Devices/AWGProxyFY6900.h"
+#include "AWGProxy/Devices/AWGProxyJDS2800.h"
+#include "AWGProxy/Devices/AWGProxyJDS6600.h"
+
 #include "esp_config.h"
 
-
-#include "AWGProxyFY6800.h"
 
 WiFiServer rpc_server(RPC_PORT);
 WiFiServer lxi_server(LXI_PORT);
 ESPTelnet telnet;
 
+AWGNetwork* awgNetwork = nullptr;
+
 void setup() {
     Serial.begin(115200);
-
-    // PFL : pour la compilation
-    AWGProxyFY6800 awg;
-    awg.begin();
-    // PFL : fin pour la compilation
 
     pinMode(LED_BUILTIN, OUTPUT);
 
@@ -61,6 +65,39 @@ void setup() {
 
     rpc_server.begin();
     lxi_server.begin();
+
+    AWGProxyBase* awgProxy = nullptr;
+    switch(AWG)
+    {
+        case FY6800:
+            awgProxy = new AWGProxyFY6800();
+            break;
+        case FY6900:
+            awgProxy = new AWGProxyFY6900();
+            break;
+        case JDS2800:
+            awgProxy = new AWGProxyJDS2800();
+            break;
+        case JDS6600:
+            awgProxy = new AWGProxyJDS6600();
+            break;
+        default:
+            DEBUG("Unknown AWG selected");
+            return;
+    }
+    awgNetwork = new AWGNetwork(awgProxy, new AWGParser(awgProxy));
+
+    if (!MDNS.begin(AWG_PROXY_NAME)) {   // Set the hostname to "esp32.local"
+      PRINT_TO_SERIAL("Error setting up MDNS responder!");
+      while(1) {
+        delay(1000);
+      }
+    }
+    MDNS.addService("lxi", "tcp", 703);
+    MDNS.addService("rpc", "tcp", 111);
+    MDNS.addService("telnet", "tcp", 23);
+    
+    PRINT_TO_SERIAL("mDNS responder started");
 }
 
 void loop() {
@@ -76,7 +113,7 @@ void loop() {
     while(!rpc_client);
     DEBUG("RPC CONNECTION.");
 
-    handlePacket(rpc_client);
+    awgNetwork->handlePacket(rpc_client);
     rpc_client.stop();
 
     do
@@ -89,12 +126,12 @@ void loop() {
     while(1)
     {
         telnet.loop();        
-        if(0 != handlePacket(lxi_client))
+        if(0 != awgNetwork->handlePacket(lxi_client))
         {
             lxi_client.stop();
             DEBUG("RESTARTING");
             return;
-        }else{
+        } else {
           // Lets give the user some feedback
           digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
         }
